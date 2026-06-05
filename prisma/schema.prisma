@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum StatusObra {
+  LANCAMENTO
+  EM_OBRAS
+  PRONTO
+}
+
+enum TipoFoto {
+  FACHADA
+  PERSPECTIVA
+  AREA_LAZER
+  PLANTA
+  DECORADO
+  OUTRO
+}
+
+model Incorporadora {
+  id              String           @id @default(cuid())
+  nome            String           @unique
+  construtora     String?
+  logo            String?
+  site            String?
+  telefone        String?
+  email           String?
+  descricao       String?
+  ativo           Boolean          @default(true)
+  empreendimentos Empreendimento[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Empreendimento {
+  id                  String        @id @default(cuid())
+  nome                String
+  incorporadoraId     String
+  incorporadora       Incorporadora @relation(fields: [incorporadoraId], references: [id])
+  construtora         String?
+  slug                String        @unique
+  ativo               Boolean       @default(false)
+  bairro              String
+  bairrosProximos     String[]
+  endereco            String?
+  cidade              String        @default("Goiânia")
+  estado              String        @default("GO")
+  latitude            Float?
+  longitude           Float?
+  precoMin            Float
+  precoMax            Float
+  aceitaFgts          Boolean       @default(false)
+  aceitaFinanciamento Boolean       @default(true)
+  programaMcmv        Boolean       @default(false)
+  status              StatusObra    @default(LANCAMENTO)
+  entregaPrevista     String?
+  percentualObra      Int?
+  diferenciais        String[]
+  destaqueIa          String
+  descricaoCompleta   String?
+  tipologias          Tipologia[]
+  fotos               Foto[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model Tipologia {
+  id               String         @id @default(cuid())
+  empreendimentoId String
+  empreendimento   Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  quartos          Int
+  suites           Int            @default(0)
+  banheiros        Int            @default(1)
+  areaPrivativa    Float
+  areaTotal        Float?
+  vagas            Int            @default(1)
+  preco            Float
+  plantaUrl        String?
+  disponivel       Boolean        @default(true)
+}
+
+model Foto {
+  id               String         @id @default(cuid())
+  empreendimentoId String
+  empreendimento   Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  url              String
+  tipo             TipoFoto       @default(FACHADA)
+  ordem            Int            @default(0)
+  legenda          String?
+}
+
+model Lead {
+  id               String     @id @default(cuid())
+  nome             String
+  email            String     @unique
+  telefone         String
+  whatsapp         String?
+  status           String     @default("novo")
+  orcamentoMax     Float?
+  bairrosInteresse String[]
+  tipoImovel       String?
+  score            Int        @default(0)
+  conversas        Conversa[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Conversa {
+  id                String   @id @default(cuid())
+  leadId            String
+  lead              Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  historicoJson     Json     @default("[]")
+  resumoIa          String?
+  scoreQualificacao Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nome      String
+  createdAt DateTime @default(now())
+}

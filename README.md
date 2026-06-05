@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Seu Corretor GO
 
-## Getting Started
+Plataforma de consultoria imobiliária com agente de IA para imóveis novos em Goiânia.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router)
+- **Prisma 7** + PostgreSQL (Supabase)
+- **Claude Sonnet** (agente Alberto, via Anthropic SDK)
+- **NextAuth** (painel admin)
+- **Tailwind CSS 4**
+
+## Funcionalidades
+
+- **Chat público** — agente Alberto qualifica o cliente e apresenta empreendimentos compatíveis com busca inteligente no banco
+- **Painel admin** — cadastro de incorporadoras, empreendimentos, tipologias e fotos; visualização de leads
+- **Galeria de fotos** — cards com navegação de fotos por empreendimento
+
+## Setup local
 
 ```bash
+# 1. Clone e instale dependências
+npm install
+
+# 2. Copie e preencha as variáveis de ambiente
+cp .env.example .env.local
+
+# 3. Gere o cliente Prisma e rode as migrations
+npx prisma generate
+npx prisma migrate deploy
+
+# 4. Crie o usuário admin
+npx tsx scripts/seed-admin.ts
+
+# 5. Suba o servidor de desenvolvimento
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse o painel admin em `http://localhost:3000/admin/login`
+- Email: `admin@seucorretorgo.com.br`
+- Senha: `Admin@2024`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Variáveis de ambiente
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Veja `.env.example` para a lista completa. Configure no Railway via **Variables** no dashboard do projeto.
 
-## Learn More
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | URL pooler Supabase (porta 6543, pgbouncer) |
+| `DIRECT_URL` | URL direta Supabase (porta 5432, para migrations) |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL pública do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anônima Supabase |
+| `NEXTAUTH_SECRET` | Secret para JWT do NextAuth |
+| `NEXTAUTH_URL` | URL pública da aplicação |
+| `ANTHROPIC_API_KEY` | Chave da API Anthropic |
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy no Railway
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+O arquivo `railway.json` já está configurado. O deploy:
+1. Gera o cliente Prisma (`prisma generate`)
+2. Faz build do Next.js (`next build`)
+3. Roda as migrations pendentes (`prisma migrate deploy`)
+4. Inicia a aplicação (`next start`)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Configure as variáveis de ambiente no painel do Railway antes do primeiro deploy.

@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-git --yes)",
-      "Bash(cp .env.local /tmp/env_backup)",
-      "Bash(rm .env.local)"
-    ]
-  }
-}
