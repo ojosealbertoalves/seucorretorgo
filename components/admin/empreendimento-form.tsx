@@ -15,8 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Trash2, X, Upload, ImagePlus, Loader2, ChevronDown, Building2 } from 'lucide-react'
-import { useUploadThing } from '@uploadthing/react'
-import type { OurFileRouter } from '@/lib/uploadthing'
+import { useUploadThing } from '@/lib/uploadthing'
 import { cn } from '@/lib/utils'
 
 /* ─── Types ──────────────────────────────────────────────────────── */
@@ -196,7 +195,7 @@ export function EmpreendimentoForm({
   incorporadoraHint?: string
 }) {
   const router = useRouter()
-  const { startUpload } = useUploadThing<OurFileRouter>('imageUploader')
+  const { startUpload } = useUploadThing('imageUploader')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 

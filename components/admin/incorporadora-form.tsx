@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { X, ImagePlus, Loader2 } from 'lucide-react'
-import { useUploadThing } from '@uploadthing/react'
-import type { OurFileRouter } from '@/lib/uploadthing'
+import { useUploadThing } from '@/lib/uploadthing'
 
 type IncorporadoraData = {
   id: string
@@ -34,7 +33,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function IncorporadoraForm({ initialData }: { initialData?: IncorporadoraData }) {
   const router = useRouter()
-  const { startUpload } = useUploadThing<OurFileRouter>('imageUploader')
+  const { startUpload } = useUploadThing('imageUploader')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
