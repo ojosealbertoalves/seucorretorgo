@@ -1,7 +1,15 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { searchEmpreendimentos, type FiltrosBusca, type EmpreendimentoResult } from '@/lib/search-empreendimentos'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const OR_URL = 'https://openrouter.ai/api/v1/chat/completions'
+
+function orHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    'X-Title': 'Seu Corretor GO',
+  }
+}
 
 const STATUS_MAP: Record<string, string> = {
   LANCAMENTO: 'Lançamento',
@@ -22,10 +30,15 @@ async function extractFiltros(
   messages: { role: 'user' | 'assistant'; content: string }[],
 ): Promise<FiltrosExtraidos> {
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 256,
-      system: `Analise a conversa e extraia filtros de busca de imóveis.
+    const res = await fetch(OR_URL, {
+      method: 'POST',
+      headers: orHeaders(),
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL_FAST || 'anthropic/claude-haiku-4-5',
+        messages: [
+          {
+            role: 'system',
+            content: `Analise a conversa e extraia filtros de busca de imóveis.
 Retorne APENAS JSON válido, sem markdown, sem explicação:
 {
   "tipo": "apartamento" | "casa" | null,
@@ -38,11 +51,16 @@ Retorne APENAS JSON válido, sem markdown, sem explicação:
   "prontoParaBuscar": boolean
 }
 prontoParaBuscar = true apenas se tiver pelo menos: tipo + quartos + precoMax. Caso contrário false.`,
-      messages,
+          },
+          ...messages,
+        ],
+        max_tokens: 256,
+      }),
     })
 
-    const text =
-      response.content[0]?.type === 'text' ? response.content[0].text.trim() : '{}'
+    if (!res.ok) return { prontoParaBuscar: false }
+    const data = await res.json()
+    const text = (data.choices?.[0]?.message?.content ?? '{}').trim()
     return JSON.parse(text)
   } catch {
     return { prontoParaBuscar: false }
@@ -163,7 +181,6 @@ export async function POST(req: Request) {
 
     console.log('[chat] mensagens para API:', apiMessages.length)
 
-    // Extrai filtros via Haiku (rápido e barato)
     const filtros = await extractFiltros(apiMessages)
     console.log('[chat] filtros extraídos:', JSON.stringify(filtros))
 
@@ -174,7 +191,6 @@ export async function POST(req: Request) {
         try {
           let empreendimentosJson = '[]'
 
-          // Busca no banco se tiver filtros suficientes
           if (filtros.prontoParaBuscar) {
             const results = await searchEmpreendimentos({
               tipo: filtros.tipo,
@@ -187,7 +203,6 @@ export async function POST(req: Request) {
             })
 
             if (results.length > 0) {
-              // Emite cards com fotos antes de iniciar o stream de texto
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({ type: 'cards', data: results })}\n\n`,
@@ -195,45 +210,68 @@ export async function POST(req: Request) {
               )
               empreendimentosJson = JSON.stringify(buildContextJson(results))
               console.log('[chat] empreendimentos encontrados:', results.length)
-            } else {
-              console.log('[chat] nenhum empreendimento encontrado para os filtros')
             }
           }
 
           const systemPrompt = SYSTEM_TEMPLATE.replace('{EMPREENDIMENTOS_JSON}', empreendimentosJson)
 
-          console.log('[chat] iniciando stream Anthropic')
+          console.log('[chat] iniciando stream OpenRouter')
 
-          const anthropicStream = anthropic.messages.stream({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 1024,
-            system: systemPrompt,
-            messages: apiMessages,
+          const orRes = await fetch(OR_URL, {
+            method: 'POST',
+            headers: orHeaders(),
+            body: JSON.stringify({
+              model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4-5',
+              messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
+              stream: true,
+              max_tokens: 1024,
+            }),
           })
 
-          let fullText = ''
+          if (!orRes.ok || !orRes.body) {
+            throw new Error(`OpenRouter error: ${orRes.status}`)
+          }
 
-          for await (const event of anthropicStream) {
-            if (event.type !== 'content_block_delta') continue
-            const delta = event.delta as { type: string; text?: string }
-            if (delta.type !== 'text_delta' || !delta.text) continue
-            fullText += delta.text
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'text', delta: delta.text })}\n\n`),
-            )
+          const reader = orRes.body.getReader()
+          const decoder = new TextDecoder()
+          let buf = ''
+          let fullText = ''
+          let finished = false
+
+          while (!finished) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buf += decoder.decode(value, { stream: true })
+            const lines = buf.split('\n')
+            buf = lines.pop() ?? ''
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const raw = line.slice(6).trim()
+              if (raw === '[DONE]') { finished = true; break }
+
+              try {
+                const parsed = JSON.parse(raw)
+                const content: string | undefined = parsed.choices?.[0]?.delta?.content
+                if (content) {
+                  fullText += content
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: 'text', delta: content })}\n\n`),
+                  )
+                }
+              } catch {}
+            }
           }
 
           console.log('[chat] stream completo —', fullText.length, 'chars')
 
-          // Detecta captura de lead
           const leadMatch = fullText.match(/\[LEAD:([^\]]+)\]/)
           if (leadMatch) {
             const params: Record<string, string> = {}
             leadMatch[1].split('|').forEach((p) => {
               const idx = p.indexOf('=')
-              if (idx > 0) {
-                params[p.slice(0, idx).trim()] = p.slice(idx + 1).trim()
-              }
+              if (idx > 0) params[p.slice(0, idx).trim()] = p.slice(idx + 1).trim()
             })
             if (params.nome && params.email) {
               controller.enqueue(
