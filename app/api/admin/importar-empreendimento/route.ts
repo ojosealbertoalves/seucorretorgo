@@ -1,8 +1,5 @@
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import Anthropic from '@anthropic-ai/sdk'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const SYSTEM_PROMPT = `Você é um especialista em análise de materiais de vendas de empreendimentos imobiliários. Analise o material enviado e extraia TODOS os dados disponíveis. Retorne APENAS um JSON válido, sem markdown, sem explicação, com esta estrutura exata:
 
@@ -63,37 +60,52 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Formato não suportado. Use PDF, JPG ou PNG.' }, { status: 400 })
     }
 
-    type ContentBlock =
-      | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
-      | { type: 'document'; source: { type: 'base64'; media_type: 'application/pdf'; data: string } }
+    // OpenAI-compatible vision format — data URL funciona para imagens e PDFs via OpenRouter/Claude
+    type ContentPart =
+      | { type: 'image_url'; image_url: { url: string } }
       | { type: 'text'; text: string }
 
-    const content: ContentBlock[] = isPdf
-      ? [
-          {
-            type: 'document',
-            source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-          },
-          { type: 'text', text: 'Analise este documento e extraia os dados do empreendimento.' },
-        ]
-      : [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mimeType, data: base64 },
-          },
-          { type: 'text', text: 'Analise esta imagem e extraia os dados do empreendimento.' },
-        ]
+    const userContent: ContentPart[] = [
+      {
+        type: 'image_url',
+        image_url: { url: `data:${mimeType};base64,${base64}` },
+      },
+      {
+        type: 'text',
+        text: isPdf
+          ? 'Analise este documento e extraia os dados do empreendimento.'
+          : 'Analise esta imagem e extraia os dados do empreendimento.',
+      },
+    ]
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: content as Anthropic.MessageParam['content'] }],
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXTAUTH_URL || 'http://localhost:3000',
+        'X-Title': 'Seu Corretor GO',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-sonnet-4-5',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userContent },
+        ],
+        max_tokens: 4096,
+      }),
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    if (!res.ok) {
+      const errText = await res.text()
+      console.error('[importar] OpenRouter error:', res.status, errText)
+      return Response.json({ error: 'Erro ao processar arquivo com a IA.' }, { status: 500 })
+    }
 
-    // Strip markdown code fences if Claude wrapped the JSON
+    const data = await res.json()
+    const text: string = data.choices?.[0]?.message?.content ?? ''
+
+    // Strip markdown code fences if the model wrapped the JSON
     const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
 
     let extracted: unknown
