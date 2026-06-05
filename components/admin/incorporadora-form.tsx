@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { X, ImagePlus, Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase-client'
+import { useUploadThing } from '@uploadthing/react'
+import type { OurFileRouter } from '@/lib/uploadthing'
 
 type IncorporadoraData = {
   id: string
@@ -31,31 +32,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-async function uploadLogo(file: File): Promise<string> {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
-  const path = `logos/${Date.now()}-${safeName}`
-
-  console.log('[upload] bucket: incorporadoras')
-  console.log('[upload] path:', path)
-  console.log('[upload] supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-  console.log('[upload] file:', file.name, '|', file.type || '(sem type)', '|', file.size, 'bytes')
-
-  const { data, error } = await supabase.storage
-    .from('incorporadoras')
-    .upload(path, file, { contentType: file.type || 'application/octet-stream' })
-
-  if (error) {
-    console.error('[upload] erro Supabase:', JSON.stringify(error))
-    throw error
-  }
-
-  console.log('[upload] sucesso:', data?.path)
-  const { data: urlData } = supabase.storage.from('incorporadoras').getPublicUrl(path)
-  return urlData.publicUrl
-}
-
 export function IncorporadoraForm({ initialData }: { initialData?: IncorporadoraData }) {
   const router = useRouter()
+  const { startUpload } = useUploadThing<OurFileRouter>('imageUploader')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -76,7 +55,9 @@ export function IncorporadoraForm({ initialData }: { initialData?: Incorporadora
     setLogoPreview(URL.createObjectURL(file))
     setLogoUploading(true)
     try {
-      const url = await uploadLogo(file)
+      const uploaded = await startUpload([file])
+      const url = uploaded?.[0]?.url ?? ''
+      if (!url) throw new Error('No URL')
       setLogo(url)
     } catch {
       setLogoPreview(logo)

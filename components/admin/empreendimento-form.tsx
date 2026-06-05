@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Trash2, X, Upload, ImagePlus, Loader2, ChevronDown, Building2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase-client'
+import { useUploadThing } from '@uploadthing/react'
+import type { OurFileRouter } from '@/lib/uploadthing'
 import { cn } from '@/lib/utils'
 
 /* ─── Types ──────────────────────────────────────────────────────── */
@@ -184,18 +185,6 @@ function TagInput({
   )
 }
 
-/* ─── Supabase upload ────────────────────────────────────────────── */
-async function uploadToSupabase(file: File): Promise<string> {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
-  const path = `empreendimentos/${Date.now()}-${safeName}`
-  const { error } = await supabase.storage
-    .from('empreendimentos')
-    .upload(path, file, { contentType: file.type })
-  if (error) throw error
-  const { data } = supabase.storage.from('empreendimentos').getPublicUrl(path)
-  return data.publicUrl
-}
-
 /* ─── Component ─────────────────────────────────────────────────── */
 export function EmpreendimentoForm({
   editId,
@@ -207,6 +196,7 @@ export function EmpreendimentoForm({
   incorporadoraHint?: string
 }) {
   const router = useRouter()
+  const { startUpload } = useUploadThing<OurFileRouter>('imageUploader')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -315,7 +305,9 @@ export function EmpreendimentoForm({
       })
     )
     try {
-      const url = await uploadToSupabase(file)
+      const uploaded = await startUpload([file])
+      const url = uploaded?.[0]?.url ?? ''
+      if (!url) throw new Error('No URL')
       setTipologias((prev) =>
         prev.map((t, idx) => (idx === i ? { ...t, plantaUrl: url, plantaUploading: false } : t))
       )
@@ -340,8 +332,10 @@ export function EmpreendimentoForm({
     )
     if (!accepted.length) return
 
-    const newItems: FotoItem[] = accepted.map((f) => ({
-      _id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    const ids = accepted.map(() => `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+
+    const newItems: FotoItem[] = accepted.map((f, idx) => ({
+      _id: ids[idx],
       url: '',
       tipo: 'FACHADA' as TipoFoto,
       legenda: '',
@@ -351,16 +345,22 @@ export function EmpreendimentoForm({
 
     setFotos((prev) => [...prev, ...newItems])
 
-    for (const [item, file] of newItems.map((item, i) => [item, accepted[i]] as [FotoItem, File])) {
-      const id = item._id
-      try {
-        const url = await uploadToSupabase(file)
-        setFotos((prev) => prev.map((f) => (f._id === id ? { ...f, url, uploading: false } : f)))
-      } catch {
-        setFotos((prev) =>
-          prev.map((f) => (f._id === id ? { ...f, uploading: false, error: 'Falha no upload' } : f))
+    try {
+      const uploaded = await startUpload(accepted)
+      setFotos((prev) =>
+        prev.map((f) => {
+          const idx = ids.indexOf(f._id)
+          if (idx === -1) return f
+          const url = uploaded?.[idx]?.url ?? ''
+          return { ...f, url, uploading: false, error: url ? undefined : 'Falha no upload' }
+        })
+      )
+    } catch {
+      setFotos((prev) =>
+        prev.map((f) =>
+          ids.includes(f._id) ? { ...f, uploading: false, error: 'Falha no upload' } : f
         )
-      }
+      )
     }
   }
 
