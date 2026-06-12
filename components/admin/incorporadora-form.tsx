@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { X, ImagePlus, Loader2 } from 'lucide-react'
-import { useUploadThing } from '@/lib/uploadthing'
+import { useR2Upload } from '@/components/R2Upload'
 
 type IncorporadoraData = {
   id: string
@@ -33,7 +33,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function IncorporadoraForm({ initialData }: { initialData?: IncorporadoraData }) {
   const router = useRouter()
-  const { startUpload } = useUploadThing('imageUploader')
+  const { startUpload } = useR2Upload()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
