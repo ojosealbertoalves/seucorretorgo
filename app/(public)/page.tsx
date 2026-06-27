@@ -67,6 +67,12 @@ export default function HomePage() {
             >
               Catálogo
             </Link>
+            <Link
+              href="/blog"
+              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
+            >
+              Blog
+            </Link>
           </div>
 
           <Link
@@ -451,6 +457,8 @@ export default function HomePage() {
             {[
               { href: '/catalogo', label: 'Catálogo' },
               { href: '/conversar', label: 'Conversar' },
+              { href: '/blog', label: 'Blog' },
+              { href: '/newsletter', label: 'Newsletter' },
               { href: '/admin/login', label: 'Admin' },
             ].map(({ href, label }) => (
               <Link
