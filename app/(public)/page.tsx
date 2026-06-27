@@ -185,62 +185,135 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 relative">
+          <div className="grid md:grid-cols-3 gap-8 relative items-start">
             {/* Connector line */}
             <div
               className="hidden md:block absolute top-10 left-[calc(16.67%+3rem)] right-[calc(16.67%+3rem)] h-px"
               style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.25), transparent)' }}
             />
 
-            {[
-              {
-                num: '1',
-                title: 'Explore sem pressão',
-                desc: 'Navegue pelo catálogo de imóveis novos em Goiânia com calma, sem ninguém te pressionando.',
-                icon: Search,
-                glow: 'rgba(249,115,22,0.15)',
-              },
-              {
-                num: '2',
-                title: 'Converse com o Alberto',
-                desc: 'Nossa IA tira dúvidas, filtra opções e te ajuda a comparar os melhores empreendimentos.',
-                icon: Bot,
-                glow: 'rgba(59,130,246,0.15)',
-              },
-              {
-                num: '3',
-                title: 'Decida e agende',
-                desc: 'Só fale com um corretor real quando você decidir — exclusivamente para agendar a visita.',
-                icon: Calendar,
-                glow: 'rgba(16,185,129,0.15)',
-              },
-            ].map(({ num, title, desc, icon: Icon, glow }) => (
-              <div
-                key={num}
-                className="flex flex-col items-center text-center gap-5 relative group cursor-default"
-              >
-                {/* Number */}
+            {/* ── STEP 1 + chat preview ── */}
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col items-center text-center gap-5 relative group cursor-default">
                 <span
                   className="text-7xl font-black leading-none bg-clip-text text-transparent select-none"
                   style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
                 >
-                  {num}
+                  1
                 </span>
-
-                {/* Icon */}
                 <div
                   className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 z-10"
-                  style={{ background: glow, border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  <Icon size={22} className="text-white/70" />
+                  <MessageCircle size={22} className="text-white/70" />
                 </div>
-
                 <div>
-                  <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-                  <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
+                  <h3 className="text-base font-semibold text-white mb-2">Explore e converse</h3>
+                  <p className="text-white/40 text-sm leading-relaxed">
+                    Navegue pelo catálogo sem pressão ou converse direto com o Alberto. Basta dizer o que procura — nossa IA busca no catálogo e apresenta as melhores opções para você.
+                  </p>
                 </div>
               </div>
-            ))}
+
+              {/* Chat preview mockup */}
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                <div
+                  className="flex items-center gap-2 px-3 py-2.5 border-b"
+                  style={{ background: 'rgba(10,22,40,0.6)', borderColor: 'rgba(255,255,255,0.07)' }}
+                >
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                  >
+                    A
+                  </div>
+                  <span className="text-white/60 text-xs font-medium">Alberto</span>
+                  <span className="ml-auto flex items-center gap-1.5 text-emerald-400 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                    Online
+                  </span>
+                </div>
+                <div className="p-3 space-y-3">
+                  <div className="flex justify-end">
+                    <div
+                      className="px-3 py-2 rounded-2xl rounded-tr-sm text-white text-xs leading-relaxed"
+                      style={{
+                        background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                        boxShadow: '0 4px 14px rgba(249,115,22,0.22)',
+                        maxWidth: '88%',
+                      }}
+                    >
+                      Quero uma casa de 3 quartos, 120m², com garagem para 2 carros, no Jardim Goiás, até R$ 800 mil.
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                    >
+                      A
+                    </div>
+                    <div
+                      className="px-3 py-2 rounded-2xl rounded-tl-sm text-white/90 text-xs leading-relaxed"
+                      style={{
+                        background: '#1a2e44',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        maxWidth: '80%',
+                      }}
+                    >
+                      Encontrei 3 opções perfeitas para você! 🏡
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── STEP 2 ── */}
+            <div className="flex flex-col items-center text-center gap-5 relative group cursor-default">
+              <span
+                className="text-7xl font-black leading-none bg-clip-text text-transparent select-none"
+                style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+              >
+                2
+              </span>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 z-10"
+                style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <Bot size={22} className="text-white/70" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white mb-2">Tire todas as dúvidas</h3>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  O Alberto te conta tudo sobre cada empreendimento: diferenciais, localização, plantas disponíveis, formas de pagamento. Compare quantas opções quiser, no seu tempo.
+                </p>
+              </div>
+            </div>
+
+            {/* ── STEP 3 ── */}
+            <div className="flex flex-col items-center text-center gap-5 relative group cursor-default">
+              <span
+                className="text-7xl font-black leading-none bg-clip-text text-transparent select-none"
+                style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+              >
+                3
+              </span>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 z-10"
+                style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <Calendar size={22} className="text-white/70" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white mb-2">Fale com o corretor quando quiser</h3>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  Decidiu? Conecte-se com o corretor apenas para agendar uma visita ou tirar dúvidas finais. Nada de ligações ou mensagens não solicitadas.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
