@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { Home, Tag, ChevronLeft, Mail, ArrowRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
 
 function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -93,6 +94,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         {/* Content */}
         <div className="prose-blog">
           <ReactMarkdown
+            rehypePlugins={[rehypeRaw]}
             components={{
               h1: ({ children }) => <h1 className="text-2xl font-bold text-white mt-8 mb-4">{children}</h1>,
               h2: ({ children }) => <h2 className="text-xl font-bold text-white mt-7 mb-3">{children}</h2>,
@@ -115,6 +117,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 <code className="px-1.5 py-0.5 rounded text-sm font-mono text-orange-300" style={{ background: 'rgba(249,115,22,0.1)' }}>
                   {children}
                 </code>
+              ),
+              img: ({ src, alt }) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={src} alt={alt ?? ''} className="rounded-xl w-full my-6 object-cover" />
               ),
               hr: () => <hr className="my-8 border-white/10" />,
               a: ({ href, children }) => (
