@@ -24,6 +24,8 @@ function fmt(n: number) {
 type FiltrosExtraidos = FiltrosBusca & {
   bairros?: string[] | null
   prontoParaBuscar: boolean
+  tipoNegocio?: 'IMOVEL' | 'LOTE' | null
+  areaTerreno?: number | null
 }
 
 async function extractFiltros(
@@ -38,11 +40,13 @@ async function extractFiltros(
         messages: [
           {
             role: 'system',
-            content: `Analise a conversa e extraia filtros de busca de imóveis.
+            content: `Analise a conversa e extraia filtros de busca de imóveis ou lotes.
 Retorne APENAS JSON válido, sem markdown, sem explicação:
 {
+  "tipoNegocio": "IMOVEL" | "LOTE" | null,
   "tipo": "apartamento" | "casa" | null,
   "quartos": number | null,
+  "areaTerreno": number | null,
   "precoMax": number | null,
   "bairros": string[] | null,
   "diferenciais": string[] | null,
@@ -50,7 +54,10 @@ Retorne APENAS JSON válido, sem markdown, sem explicação:
   "programaMcmv": boolean | null,
   "prontoParaBuscar": boolean
 }
-prontoParaBuscar = true apenas se tiver pelo menos: tipo + quartos + precoMax. Caso contrário false.`,
+prontoParaBuscar = true se:
+- Para IMOVEL: tiver tipo + quartos + precoMax
+- Para LOTE: tiver tipoNegocio=LOTE + precoMax (quartos não obrigatório)
+Caso contrário false.`,
           },
           ...messages,
         ],
@@ -68,42 +75,64 @@ prontoParaBuscar = true apenas se tiver pelo menos: tipo + quartos + precoMax. C
 }
 
 function buildContextJson(empreendimentos: EmpreendimentoResult[]) {
-  return empreendimentos.map((e) => ({
-    slug: e.slug,
-    nome: e.nome,
-    bairro: e.bairro,
-    bairrosProximos: e.bairrosProximos,
-    cidade: e.cidade,
-    endereco: e.endereco,
-    status: STATUS_MAP[e.status] ?? e.status,
-    precoMin: fmt(e.precoMin),
-    precoMax: fmt(e.precoMax),
-    aceitaFgts: e.aceitaFgts,
-    aceitaFinanciamento: e.aceitaFinanciamento,
-    programaMcmv: e.programaMcmv,
-    entregaPrevista: e.entregaPrevista,
-    percentualObra: e.percentualObra,
-    diferenciais: e.diferenciais,
-    destaqueIa: e.destaqueIa,
-    descricaoCompleta: e.descricaoCompleta ? e.descricaoCompleta.slice(0, 400) : null,
-    incorporadora: {
-      nome: e.incorporadora.nome,
-      descricao: e.incorporadora.descricao ? e.incorporadora.descricao.slice(0, 200) : null,
-    },
-    tipologias: e.tipologias.map((t) => ({
-      quartos: t.quartos,
-      suites: t.suites,
-      banheiros: t.banheiros,
-      areaPrivativa: t.areaPrivativa,
-      areaTotal: t.areaTotal,
-      vagas: t.vagas,
-      preco: fmt(t.preco),
-    })),
-  }))
+  return empreendimentos.map((e) => {
+    const base = {
+      slug: e.slug,
+      nome: e.nome,
+      tipoNegocio: e.tipoNegocio,
+      bairro: e.bairro,
+      bairrosProximos: e.bairrosProximos,
+      cidade: e.cidade,
+      endereco: e.endereco,
+      status: STATUS_MAP[e.status] ?? e.status,
+      precoMin: fmt(e.precoMin),
+      precoMax: fmt(e.precoMax),
+      aceitaFgts: e.aceitaFgts,
+      aceitaFinanciamento: e.aceitaFinanciamento,
+      programaMcmv: e.programaMcmv,
+      entregaPrevista: e.entregaPrevista,
+      percentualObra: e.percentualObra,
+      diferenciais: e.diferenciais,
+      destaqueIa: e.destaqueIa,
+      descricaoCompleta: e.descricaoCompleta ? e.descricaoCompleta.slice(0, 400) : null,
+      incorporadora: {
+        nome: e.incorporadora.nome,
+        descricao: e.incorporadora.descricao ? e.incorporadora.descricao.slice(0, 200) : null,
+      },
+    }
+
+    if (e.tipoNegocio === 'LOTE') {
+      return {
+        ...base,
+        infraestrutura: e.infraestrutura,
+        areaTotalLoteamento: e.areaTotalLoteamento,
+        lotes: e.lotes.map((l) => ({
+          quadra: l.quadra,
+          numero: l.numero,
+          areaTerreno: l.areaTerreno,
+          frente: l.frente,
+          preco: fmt(l.preco),
+        })),
+      }
+    }
+
+    return {
+      ...base,
+      tipologias: e.tipologias.map((t) => ({
+        quartos: t.quartos,
+        suites: t.suites,
+        banheiros: t.banheiros,
+        areaPrivativa: t.areaPrivativa,
+        areaTotal: t.areaTotal,
+        vagas: t.vagas,
+        preco: fmt(t.preco),
+      })),
+    }
+  })
 }
 
 const SYSTEM_TEMPLATE = `Você é o Alberto, assistente do Seu Corretor GO em Goiânia.
-Especialista em imóveis NOVOS até R$ 1,5 milhão.
+Você atende clientes interessados tanto em imóveis novos (apartamentos/casas) quanto em LOTES E LOTEAMENTOS em condomínios fechados em Goiânia, com foco especial em lotes e loteamentos fechados — embora também tenhamos terrenos fora de condomínio no catálogo. Ambos até R$ 1,5 milhão.
 
 PERSONALIDADE:
 - Caloroso, consultivo, como um amigo especialista
@@ -112,16 +141,16 @@ PERSONALIDADE:
 - Nunca pressione
 
 ROTEIRO DE QUALIFICAÇÃO (ordem natural):
-1. Apartamento ou casa?
-2. Quantos quartos?
-3. Vagas de garagem?
+1. O cliente busca um apartamento/casa pronto para morar, ou um lote/terreno para construir?
+2. Se imóvel: quantos quartos? Se lote: área desejada em m²?
+3. Vagas de garagem? (apenas para imóveis)
 4. Orçamento máximo?
 5. Bairros de preferência em Goiânia?
-6. Diferenciais importantes? (piscina, academia, segurança 24h...)
+6. Diferenciais importantes? (piscina, academia, segurança 24h, condomínio fechado...)
 7. Pagamento: à vista, FGTS ou financiamento?
 8. Renda declarada ou comprovação dos últimos 6 meses?
 9. Estado civil?
-10. Previsão de quando quer comprar?
+10. Previsão de quando quer comprar/construir?
 
 QUANDO APRESENTAR IMÓVEIS:
 Os empreendimentos compatíveis estão no contexto abaixo como JSON.
@@ -129,10 +158,16 @@ Para cada um, VENDA o produto:
 - Mencione a incorporadora e sua credibilidade
 - Destaque os diferenciais do empreendimento
 - Fale da localização e o que tem ao redor
-- Aponte a tipologia compatível com o perfil do cliente
+- Aponte a tipologia ou lote compatível com o perfil do cliente
 - Use o campo destaqueIa como frase de impacto
 - Compare focando APENAS nos pontos positivos de cada um
 - Use a analogia: 'é como comparar uma Ferrari com um Porsche'
+
+AO APRESENTAR UM LOTE, destaque:
+- Área do terreno e frente disponíveis
+- Infraestrutura do condomínio (portaria, segurança, pavimentação, redes)
+- Localização e potencial de valorização
+- Possibilidade de construir conforme o próprio projeto do cliente
 
 SOBRE AS FOTOS:
 Quando apresentar imóveis, o sistema automaticamente mostrará as fotos cadastradas. Você não precisa mencionar as fotos no texto.
@@ -193,8 +228,10 @@ export async function POST(req: Request) {
 
           if (filtros.prontoParaBuscar) {
             const results = await searchEmpreendimentos({
+              tipoNegocio: filtros.tipoNegocio,
               tipo: filtros.tipo,
               quartos: filtros.quartos,
+              areaTerreno: filtros.areaTerreno,
               bairrosInteresse: filtros.bairros,
               precoMax: filtros.precoMax,
               diferenciais: filtros.diferenciais,

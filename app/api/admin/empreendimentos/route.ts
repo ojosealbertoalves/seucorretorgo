@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { tipologias, fotos, ...data } = body
+    const { tipologias, lotes, fotos, ...data } = body
 
     let slug = toSlug(data.nome)
     const existing = await prisma.empreendimento.findUnique({ where: { slug } })
@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       data: {
         ...data,
         slug,
-        tipologias: { create: tipologias },
+        tipologias: tipologias?.length ? { create: tipologias } : undefined,
+        lotes: lotes?.length ? { create: lotes } : undefined,
         fotos: fotos?.length ? { create: fotos } : undefined,
       },
     })

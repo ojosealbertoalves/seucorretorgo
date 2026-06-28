@@ -3,7 +3,9 @@ import { Prisma } from '@prisma/client'
 
 export type FiltrosBusca = {
   tipo?: 'apartamento' | 'casa' | null
+  tipoNegocio?: 'IMOVEL' | 'LOTE' | null
   quartos?: number | null
+  areaTerreno?: number | null
   bairrosInteresse?: string[] | null
   precoMax?: number | null
   diferenciais?: string[] | null
@@ -27,7 +29,17 @@ async function runQuery(
 ) {
   const where: Prisma.EmpreendimentoWhereInput = { ativo: true }
 
-  if (filtros.quartos) {
+  if (filtros.tipoNegocio) {
+    where.tipoNegocio = filtros.tipoNegocio
+  }
+
+  if (filtros.tipoNegocio === 'LOTE') {
+    if (filtros.areaTerreno) {
+      where.lotes = { some: { disponivel: true, areaTerreno: { gte: filtros.areaTerreno * 0.7 } } }
+    } else {
+      where.lotes = { some: { disponivel: true } }
+    }
+  } else if (filtros.quartos) {
     where.tipologias = { some: { quartos: filtros.quartos, disponivel: true } }
   }
 
@@ -56,6 +68,7 @@ async function runQuery(
     include: {
       incorporadora: { select: { nome: true, logo: true, descricao: true } },
       tipologias: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
+      lotes: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
       fotos: { orderBy: { ordem: 'asc' }, take: 10 },
     },
   })

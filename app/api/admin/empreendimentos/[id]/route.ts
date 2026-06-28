@@ -28,19 +28,21 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { tipologias, fotos, ...data } = body
+    const { tipologias, lotes, fotos, ...data } = body
 
     // slug is immutable — remove to avoid accidental overwrite
     delete data.slug
 
     const result = await prisma.$transaction(async (tx) => {
       await tx.tipologia.deleteMany({ where: { empreendimentoId: id } })
+      await tx.lote.deleteMany({ where: { empreendimentoId: id } })
       await tx.foto.deleteMany({ where: { empreendimentoId: id } })
       return tx.empreendimento.update({
         where: { id },
         data: {
           ...data,
-          tipologias: { create: tipologias },
+          tipologias: tipologias?.length ? { create: tipologias } : undefined,
+          lotes: lotes?.length ? { create: lotes } : undefined,
           fotos: fotos?.length ? { create: fotos } : undefined,
         },
       })

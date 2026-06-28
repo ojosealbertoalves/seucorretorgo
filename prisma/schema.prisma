@@ -12,6 +12,11 @@ enum StatusObra {
   PRONTO
 }
 
+enum TipoNegocio {
+  IMOVEL
+  LOTE
+}
+
 enum TipoFoto {
   FACHADA
   PERSPECTIVA
@@ -62,7 +67,11 @@ model Empreendimento {
   diferenciais        String[]
   destaqueIa          String
   descricaoCompleta   String?
+  tipoNegocio         TipoNegocio @default(IMOVEL)
+  infraestrutura      String?
+  areaTotalLoteamento Float?
   tipologias          Tipologia[]
+  lotes               Lote[]
   fotos               Foto[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -80,6 +89,18 @@ model Tipologia {
   vagas            Int            @default(1)
   preco            Float
   plantaUrl        String?
+  disponivel       Boolean        @default(true)
+}
+
+model Lote {
+  id               String         @id @default(cuid())
+  empreendimentoId String
+  empreendimento   Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  quadra           String?
+  numero           String?
+  areaTerreno      Float
+  frente           Float?
+  preco            Float
   disponivel       Boolean        @default(true)
 }
 

@@ -18,6 +18,7 @@ export default async function EditarEmpreendimentoPage({
     where: { id },
     include: {
       tipologias: true,
+      lotes: { orderBy: { preco: 'asc' } },
       fotos: { orderBy: { ordem: 'asc' } },
     },
   })
@@ -38,6 +39,9 @@ export default async function EditarEmpreendimentoPage({
     status: emp.status,
     entregaPrevista: emp.entregaPrevista,
     percentualObra: emp.percentualObra,
+    tipoNegocio: emp.tipoNegocio,
+    infraestrutura: emp.infraestrutura,
+    areaTotalLoteamento: emp.areaTotalLoteamento,
     tipologias: emp.tipologias.map((t, i) => ({
       quartos: t.quartos,
       suites: t.suites,
@@ -47,6 +51,14 @@ export default async function EditarEmpreendimentoPage({
       vagas: t.vagas,
       preco: t.preco,
       plantaUrl: plantas[i]?.url ?? null,
+    })),
+    lotes: emp.lotes.map((l) => ({
+      quadra: l.quadra,
+      numero: l.numero,
+      areaTerreno: l.areaTerreno,
+      frente: l.frente,
+      preco: l.preco,
+      disponivel: l.disponivel,
     })),
     aceitaFgts: emp.aceitaFgts,
     aceitaFinanciamento: emp.aceitaFinanciamento,

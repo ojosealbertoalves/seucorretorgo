@@ -15,6 +15,9 @@ import {
   Home,
   Zap,
   Shield,
+  ShieldCheck,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react'
 
 export default function HomePage() {
@@ -68,6 +71,12 @@ export default function HomePage() {
               Catálogo
             </Link>
             <Link
+              href="/proprietarios"
+              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
+            >
+              Para Proprietários
+            </Link>
+            <Link
               href="/blog"
               className="text-white/60 hover:text-white text-sm transition-colors duration-200"
             >
@@ -115,7 +124,7 @@ export default function HomePage() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-400" />
           </span>
-          Goiânia e Região · Imóveis Novos
+          Goiânia e Região · Especialista em Lotes e Loteamentos
         </div>
 
         {/* Headline */}
@@ -132,13 +141,13 @@ export default function HomePage() {
 
         {/* Subtitle */}
         <p className="relative text-white/55 text-base md:text-lg max-w-xl leading-relaxed mb-10">
-          Converse com o Alberto, nossa IA especialista em imóveis novos em Goiânia.
-          Explore, compare e decida no seu ritmo — fale com um corretor apenas
-          se quiser agendar uma visita.
+          Especialista em lotes e loteamentos em condomínios fechados em Goiânia.
+          Converse com o Alberto, nossa IA, explore terrenos, compare opções e decida
+          no seu ritmo — fale com um corretor apenas se quiser agendar uma visita.
         </p>
 
         {/* CTA buttons */}
-        <div className="relative flex flex-col sm:flex-row items-center gap-3 mb-10">
+        <div className="relative flex flex-col sm:flex-row items-center gap-3 mb-4">
           <Link
             href="/conversar"
             className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
@@ -158,6 +167,11 @@ export default function HomePage() {
             Ver catálogo
           </Link>
         </div>
+
+        {/* Sub-CTA support line */}
+        <p className="relative text-white/30 text-xs mb-8">
+          Também trabalhamos com imóveis novos selecionados
+        </p>
 
         {/* Stats */}
         <div className="relative flex items-center gap-4 text-white/35 text-sm flex-wrap justify-center">
@@ -252,7 +266,7 @@ export default function HomePage() {
                         maxWidth: '88%',
                       }}
                     >
-                      Quero uma casa de 3 quartos, 120m², com garagem para 2 carros, no Jardim Goiás, até R$ 800 mil.
+                      Quero um lote de 300m² em condomínio fechado, no Jardim Goiás, até R$ 400 mil
                     </div>
                   </div>
                   <div className="flex items-end gap-2">
@@ -270,7 +284,7 @@ export default function HomePage() {
                         maxWidth: '80%',
                       }}
                     >
-                      Encontrei 3 opções perfeitas para você! 🏡
+                      Encontrei 3 loteamentos perfeitos para você! 🏡
                     </div>
                   </div>
                 </div>
@@ -324,11 +338,77 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── POR QUE LOTES ── */}
+      <section
+        className="py-28 px-6"
+        style={{ background: '#0a1628' }}
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">
+              Proposta de valor
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white">
+              Por que investir em lote?
+            </h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                icon: Home,
+                title: 'Construa do seu jeito',
+                desc: 'Projete a casa dos seus sonhos, no seu tempo, do zero.',
+                color: '#f97316',
+              },
+              {
+                icon: ShieldCheck,
+                title: 'Segurança de condomínio',
+                desc: 'Portaria 24h, infraestrutura completa e vizinhança selecionada.',
+                color: '#10b981',
+              },
+              {
+                icon: TrendingUp,
+                title: 'Potencial de valorização',
+                desc: 'Terrenos em áreas de expansão de Goiânia com alto potencial.',
+                color: '#3b82f6',
+              },
+              {
+                icon: Wallet,
+                title: 'Flexibilidade financeira',
+                desc: 'Entrada facilitada — parcele o lote e construa quando quiser.',
+                color: '#a855f7',
+              },
+            ].map(({ icon: Icon, title, desc, color }) => (
+              <div
+                key={title}
+                className="rounded-2xl p-6 flex flex-col gap-4"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${color}18` }}
+                >
+                  <Icon size={22} style={{ color }} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1.5">{title}</h3>
+                  <p className="text-white/40 text-xs leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── DIFERENCIAIS ── */}
       <section
         id="diferenciais"
         className="py-28 px-6"
-        style={{ background: '#0a1628' }}
+        style={{ background: '#0d1624' }}
       >
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
@@ -356,8 +436,8 @@ export default function HomePage() {
               },
               {
                 icon: Building2,
-                title: 'Imóveis novos selecionados',
-                desc: 'Só empreendimentos novos de incorporadoras verificadas. Nada de imóvel usado.',
+                title: 'Lotes e loteamentos selecionados',
+                desc: 'Com opção de imóveis novos. Só incorporadoras verificadas. Nada de imóvel usado.',
                 color: '#10b981',
               },
               {
@@ -418,7 +498,7 @@ export default function HomePage() {
           <h2 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
             Pronto para encontrar
             <br />
-            seu imóvel?
+            seu lote ou imóvel?
           </h2>
           <p className="text-white/40 mb-10 text-base">
             O Alberto está disponível agora mesmo.
@@ -456,6 +536,7 @@ export default function HomePage() {
           <div className="flex items-center gap-8">
             {[
               { href: '/catalogo', label: 'Catálogo' },
+              { href: '/proprietarios', label: 'Para Proprietários' },
               { href: '/conversar', label: 'Conversar' },
               { href: '/blog', label: 'Blog' },
               { href: '/newsletter', label: 'Newsletter' },

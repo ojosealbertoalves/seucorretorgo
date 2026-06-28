@@ -31,6 +31,9 @@ export type FormPreset = {
   status?: 'LANCAMENTO' | 'EM_OBRAS' | 'PRONTO'
   entregaPrevista?: string | null
   percentualObra?: number | null
+  tipoNegocio?: 'IMOVEL' | 'LOTE'
+  infraestrutura?: string | null
+  areaTotalLoteamento?: number | null
   tipologias?: Array<{
     quartos: number
     suites: number
@@ -40,6 +43,14 @@ export type FormPreset = {
     vagas: number
     preco?: number | null
     plantaUrl?: string | null
+  }>
+  lotes?: Array<{
+    quadra?: string | null
+    numero?: string | null
+    areaTerreno: number
+    frente?: number | null
+    preco: number
+    disponivel?: boolean
   }>
   aceitaFgts?: boolean
   aceitaFinanciamento?: boolean
@@ -99,6 +110,15 @@ type Tipologia = {
   plantaTag: string
 }
 
+type LoteItem = {
+  quadra: string
+  numero: string
+  areaTerreno: string
+  frente: string
+  preco: string
+  disponivel: boolean
+}
+
 type IncOption = {
   id: string
   nome: string
@@ -112,6 +132,21 @@ function emptyTipologia(): Tipologia {
     quartos: 2, suites: 1, banheiros: 2,
     areaPrivativa: '', areaTotal: '', vagas: 1, preco: '',
     plantaUrl: '', plantaPreview: '', plantaUploading: false, plantaTag: '',
+  }
+}
+
+function emptyLote(): LoteItem {
+  return { quadra: '', numero: '', areaTerreno: '', frente: '', preco: '', disponivel: true }
+}
+
+function presetToLote(l: NonNullable<FormPreset['lotes']>[number]): LoteItem {
+  return {
+    quadra: l.quadra ?? '',
+    numero: l.numero ?? '',
+    areaTerreno: l.areaTerreno?.toString() ?? '',
+    frente: l.frente?.toString() ?? '',
+    preco: l.preco?.toString() ?? '',
+    disponivel: l.disponivel ?? true,
   }
 }
 
@@ -222,10 +257,23 @@ export function EmpreendimentoForm({
     preset?.percentualObra != null ? String(preset.percentualObra) : ''
   )
 
+  // Tipo de negócio
+  const [tipoNegocio, setTipoNegocio] = useState<'IMOVEL' | 'LOTE'>(preset?.tipoNegocio ?? 'IMOVEL')
+  const [infraestrutura, setInfraestrutura] = useState(preset?.infraestrutura ?? '')
+  const [areaTotalLoteamento, setAreaTotalLoteamento] = useState(
+    preset?.areaTotalLoteamento != null ? String(preset.areaTotalLoteamento) : ''
+  )
+
   // Tipologias
   const [tipologias, setTipologias] = useState<Tipologia[]>(() => {
     if (preset?.tipologias?.length) return preset.tipologias.map(presetToTipologia)
     return [emptyTipologia()]
+  })
+
+  // Lotes
+  const [lotes, setLotes] = useState<LoteItem[]>(() => {
+    if (preset?.lotes?.length) return preset.lotes.map(presetToLote)
+    return [emptyLote()]
   })
 
   // Financeiro
@@ -371,8 +419,15 @@ export function EmpreendimentoForm({
     setFotos((prev) => prev.filter((f) => f._id !== id))
   }
 
+  /* ─── Lote handlers ──────────────────────────────────────────── */
+  function updateLote(i: number, field: keyof LoteItem, val: string | boolean) {
+    setLotes((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: val } : l)))
+  }
+
   /* ─── Computed ────────────────────────────────────────────────── */
-  const precos = tipologias.map((t) => parseFloat(t.preco) || 0).filter((p) => p > 0)
+  const precosImovel = tipologias.map((t) => parseFloat(t.preco) || 0).filter((p) => p > 0)
+  const precosLote = lotes.map((l) => parseFloat(l.preco) || 0).filter((p) => p > 0)
+  const precos = tipoNegocio === 'LOTE' ? precosLote : precosImovel
   const precoMin = precos.length ? Math.min(...precos) : 0
   const precoMax = precos.length ? Math.max(...precos) : 0
   const brl = (v: number) =>
@@ -422,11 +477,14 @@ export function EmpreendimentoForm({
       status,
       entregaPrevista: entregaPrevista.trim() || null,
       percentualObra: status === 'EM_OBRAS' && percentualObra ? parseInt(percentualObra) : null,
+      tipoNegocio,
+      infraestrutura: infraestrutura.trim() || null,
+      areaTotalLoteamento: areaTotalLoteamento ? parseFloat(areaTotalLoteamento) : null,
       diferenciais,
       destaqueIa: destaqueIa.trim(),
       descricaoCompleta: descricaoCompleta.trim() || null,
       ativo,
-      tipologias: tipologias.map((t) => ({
+      tipologias: tipoNegocio === 'IMOVEL' ? tipologias.map((t) => ({
         quartos: Number(t.quartos),
         suites: Number(t.suites),
         banheiros: Number(t.banheiros),
@@ -435,7 +493,15 @@ export function EmpreendimentoForm({
         vagas: Number(t.vagas),
         preco: parseFloat(t.preco) || 0,
         plantaUrl: t.plantaUrl || null,
-      })),
+      })) : [],
+      lotes: tipoNegocio === 'LOTE' ? lotes.map((l) => ({
+        quadra: l.quadra.trim() || null,
+        numero: l.numero.trim() || null,
+        areaTerreno: parseFloat(l.areaTerreno) || 0,
+        frente: l.frente ? parseFloat(l.frente) : null,
+        preco: parseFloat(l.preco) || 0,
+        disponivel: l.disponivel,
+      })) : [],
       fotos: [...fotosUpload, ...plantasUpload],
     }
 
@@ -468,6 +534,17 @@ export function EmpreendimentoForm({
           <div className="col-span-2 space-y-1.5">
             <Label>Nome *</Label>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Residencial das Flores" />
+          </div>
+
+          <div className="col-span-2 space-y-1.5">
+            <Label>Tipo de negócio</Label>
+            <Select value={tipoNegocio} onValueChange={(v: 'IMOVEL' | 'LOTE') => setTipoNegocio(v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="IMOVEL">Imóvel (apartamento / casa)</SelectItem>
+                <SelectItem value="LOTE">Lote / Loteamento</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Incorporadora dropdown */}
@@ -599,8 +676,8 @@ export function EmpreendimentoForm({
         </div>
       </Section>
 
-      {/* 3 — Tipologias */}
-      <Section title="Tipologias">
+      {/* 3 — Tipologias (apenas para IMOVEL) */}
+      {tipoNegocio === 'IMOVEL' && <Section title="Tipologias">
         <div className="flex items-center justify-between">
           {precos.length > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -691,7 +768,78 @@ export function EmpreendimentoForm({
             </div>
           </div>
         ))}
-      </Section>
+      </Section>}
+
+      {/* 3b — Lotes (apenas para LOTE) */}
+      {tipoNegocio === 'LOTE' && (
+        <Section title="Lotes disponíveis">
+          <div className="space-y-2">
+            {precos.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Preço calculado: {brl(precoMin)}{precoMin !== precoMax ? ` – ${brl(precoMax)}` : ''}
+              </p>
+            )}
+            <Button type="button" variant="outline" size="sm" onClick={() => setLotes((p) => [...p, emptyLote()])}>
+              <Plus className="h-4 w-4 mr-1" /> Adicionar lote
+            </Button>
+          </div>
+
+          {lotes.map((l, i) => (
+            <div key={i} className="border rounded-md p-4 space-y-3 bg-gray-50">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Lote {i + 1}</span>
+                {lotes.length > 1 && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setLotes((p) => p.filter((_, idx) => idx !== i))}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Quadra</Label>
+                  <Input value={l.quadra} onChange={(e) => updateLote(i, 'quadra', e.target.value)} placeholder="Ex: A" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Número</Label>
+                  <Input value={l.numero} onChange={(e) => updateLote(i, 'numero', e.target.value)} placeholder="Ex: 12" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Área do terreno (m²) *</Label>
+                  <Input type="number" min="0" step="0.01" value={l.areaTerreno} onChange={(e) => updateLote(i, 'areaTerreno', e.target.value)} placeholder="Ex: 300" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Frente (m)</Label>
+                  <Input type="number" min="0" step="0.01" value={l.frente} onChange={(e) => updateLote(i, 'frente', e.target.value)} placeholder="Opcional" />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Preço (R$) *</Label>
+                  <Input type="number" min="0" step="1000" value={l.preco} onChange={(e) => updateLote(i, 'preco', e.target.value)} placeholder="Ex: 180000" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <Label className="text-xs">Disponível</Label>
+                <Switch checked={l.disponivel} onCheckedChange={(v) => updateLote(i, 'disponivel', v)} />
+              </div>
+            </div>
+          ))}
+
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="col-span-2 space-y-1.5">
+              <Label>Área total do loteamento (m²)</Label>
+              <Input type="number" min="0" step="0.01" value={areaTotalLoteamento} onChange={(e) => setAreaTotalLoteamento(e.target.value)} placeholder="Opcional" />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Infraestrutura do condomínio</Label>
+              <Textarea
+                rows={3}
+                value={infraestrutura}
+                onChange={(e) => setInfraestrutura(e.target.value)}
+                placeholder="Ex: Portaria 24h, rede de água e esgoto, ruas asfaltadas, energia elétrica, área de lazer..."
+              />
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* 4 — Financeiro */}
       <Section title="Financeiro">
