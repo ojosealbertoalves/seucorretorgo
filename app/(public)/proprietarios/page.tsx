@@ -1,15 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import {
-  MapPinned,
-  Tag,
-  Building2,
-  FileCheck,
-  MessageCircle,
-  Home,
-  Shield,
-  HardHat,
-} from 'lucide-react'
+import { MapPinned, Tag, Building2, FileCheck, MessageCircle, Home, Shield, HardHat } from 'lucide-react'
+import { ServicoCard } from '@/components/proprietarios/servico-card'
 
 export const metadata: Metadata = {
   title: 'Para Proprietários | Seu Corretor GO',
@@ -19,42 +11,45 @@ export const metadata: Metadata = {
 
 const WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5562999999999'
 
-function waLink(msg: string) {
-  return `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`
-}
-
 const SERVICES = [
   {
-    icon: MapPinned,
-    pergunta: 'Tenho uma área e quero fazer um loteamento',
-    resposta:
+    icon: <MapPinned size={22} style={{ color: '#f97316' }} />,
+    titulo: 'Tenho uma área e quero fazer um loteamento',
+    descricao:
       'Ajudamos a fazer a viabilidade do empreendimento, além do desenvolvimento completo do projeto.',
-    msg: 'Olá! Tenho uma área e gostaria de saber mais sobre viabilidade para loteamento.',
+    mensagemWhatsapp:
+      'Olá! Tenho uma área e gostaria de saber mais sobre viabilidade para loteamento.',
   },
   {
-    icon: Tag,
-    pergunta: 'Tenho uma área e quero vender',
-    resposta:
-      'Fale conosco para que possamos cadastrar e começar a oferecer o seu terreno.',
-    msg: 'Olá! Tenho um terreno e gostaria de saber sobre como vendê-lo com vocês.',
+    icon: <Tag size={22} style={{ color: '#f97316' }} />,
+    titulo: 'Tenho uma área e quero vender',
+    descricao: 'Fale conosco para que possamos cadastrar e começar a oferecer o seu terreno.',
+    mensagemWhatsapp:
+      'Olá! Tenho um terreno e gostaria de saber sobre como vendê-lo com vocês.',
   },
   {
-    icon: Building2,
-    pergunta: 'Já tenho um terreno e quero construir, para morar ou investir',
-    resposta:
+    icon: <Building2 size={22} style={{ color: '#f97316' }} />,
+    titulo: 'Já tenho um terreno e quero construir, para morar ou investir',
+    descricao:
       'Trabalhamos em todo o fluxo: da concepção e criação do projeto até a construção e entrega final das chaves. Nosso lema é transparência, prazo, economia, qualidade e segurança para você.',
-    msg: 'Olá! Tenho um terreno e quero construir. Gostaria de saber mais sobre o processo.',
+    mensagemWhatsapp:
+      'Olá! Tenho um terreno e quero construir. Gostaria de saber mais sobre o processo.',
   },
   {
-    icon: FileCheck,
-    pergunta: 'Precisa de outros serviços para seu imóvel ou terreno?',
-    resposta:
+    icon: <FileCheck size={22} style={{ color: '#f97316' }} />,
+    titulo: 'Precisa de outros serviços para seu imóvel ou terreno?',
+    descricao:
       'Regularização, serviços de topografia e mais. Trabalhamos com parceiros especializados para deixar seu imóvel pronto para venda.',
-    msg: 'Olá! Preciso de ajuda com regularização/topografia do meu imóvel.',
+    mensagemWhatsapp:
+      'Olá! Preciso de ajuda com regularização/topografia do meu imóvel.',
   },
 ]
 
 export default function ProprietariosPage() {
+  const ctaHref = `https://wa.me/${WA}?text=${encodeURIComponent(
+    'Olá! Gostaria de saber mais sobre os serviços de engenharia da Seu Corretor GO.',
+  )}`
+
   return (
     <>
       {/* ── NAVBAR ── */}
@@ -108,7 +103,6 @@ export default function ProprietariosPage() {
         className="relative pt-36 pb-24 px-6 text-center overflow-hidden"
         style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2e44 55%, #0d2137 100%)' }}
       >
-        {/* Grid overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -117,7 +111,6 @@ export default function ProprietariosPage() {
             backgroundSize: '50px 50px',
           }}
         />
-        {/* Glow */}
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full pointer-events-none"
           style={{
@@ -127,9 +120,10 @@ export default function ProprietariosPage() {
         />
 
         <div className="relative max-w-2xl mx-auto">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium text-white/70 border border-white/15 mb-8"
-            style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium text-white/70 border border-white/15 mb-8"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+          >
             <HardHat size={13} className="text-orange-400" />
             Engenharia Civil · Serviços Especializados
           </div>
@@ -152,60 +146,11 @@ export default function ProprietariosPage() {
       </section>
 
       {/* ── CARDS DE SERVIÇO ── */}
-      <section
-        className="py-24 px-6"
-        style={{ background: '#0d1624' }}
-      >
+      <section className="py-24 px-6" style={{ background: '#0d1624' }}>
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-6">
-            {SERVICES.map(({ icon: Icon, pergunta, resposta, msg }) => (
-              <div
-                key={pergunta}
-                className="group rounded-2xl p-8 flex flex-col gap-6 transition-all duration-300 hover:-translate-y-1"
-                style={{
-                  background: '#0d1f2f',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  boxShadow: '0 0 0 0 rgba(249,115,22,0)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(249,115,22,0.08)'
-                  ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(249,115,22,0.25)'
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 0 rgba(249,115,22,0)'
-                  ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.08)'
-                }}
-              >
-                {/* Icon */}
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: '#fff7ed' }}
-                >
-                  <Icon size={22} style={{ color: '#f97316' }} />
-                </div>
-
-                {/* Text */}
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold text-lg leading-snug mb-3">
-                    {pergunta}
-                  </h3>
-                  <p className="text-white/45 text-sm leading-relaxed">
-                    {resposta}
-                  </p>
-                </div>
-
-                {/* CTA */}
-                <a
-                  href={waLink(msg)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 justify-center text-white text-sm font-semibold px-5 py-3 rounded-xl transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
-                  style={{ background: '#f97316' }}
-                >
-                  <MessageCircle size={16} />
-                  Falar sobre esse serviço
-                </a>
-              </div>
+            {SERVICES.map((s) => (
+              <ServicoCard key={s.titulo} {...s} />
             ))}
           </div>
         </div>
@@ -231,7 +176,7 @@ export default function ProprietariosPage() {
             Fale diretamente conosco e vamos entender como podemos ajudar.
           </p>
           <a
-            href={waLink('Olá! Gostaria de saber mais sobre os serviços de engenharia da Seu Corretor GO.')}
+            href={ctaHref}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-white font-semibold px-10 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
