@@ -9,8 +9,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Seu Corretor GO | Lotes e Loteamentos em Goiânia",
-  description: "Especialista em lotes e loteamentos em condomínios fechados em Goiânia. Converse com nossa IA e encontre o terreno ideal sem pressão.",
+  title: "Só Terrenos GO | Lotes e Terrenos em Goiânia",
+  description: "Especialista em lotes, loteamentos e terrenos em Goiânia e região. Converse com nossa IA e encontre o terreno ideal sem pressão.",
 };
 
 export default function RootLayout({

@@ -986,7 +986,7 @@ export function EmpreendimentoForm({
       )}
 
       <div className="flex gap-3 pb-8">
-        <Button type="submit" disabled={saving} className="text-white" style={{ backgroundColor: '#f97316' }}>
+        <Button type="submit" disabled={saving} className="text-white" style={{ backgroundColor: '#C4622D' }}>
           {saving ? 'Salvando...' : editId ? 'Salvar alterações' : 'Salvar empreendimento'}
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>

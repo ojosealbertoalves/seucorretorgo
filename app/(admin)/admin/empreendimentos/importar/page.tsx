@@ -196,7 +196,7 @@ export default function ImportarEmpreendimentoPage() {
             onClick={handleAnalyze}
             disabled={!file || analyzing}
             className="w-full text-white"
-            style={{ backgroundColor: '#f97316' }}
+            style={{ backgroundColor: '#C4622D' }}
           >
             {analyzing ? (
               <>

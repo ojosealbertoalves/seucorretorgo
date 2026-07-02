@@ -35,7 +35,7 @@ export default function HomePage() {
       <nav
         className="fixed top-0 inset-x-0 z-50 h-16 transition-all duration-300"
         style={{
-          background: scrolled ? 'rgba(10,22,40,0.92)' : 'transparent',
+          background: scrolled ? 'rgba(26,46,26,0.92)' : 'transparent',
           backdropFilter: scrolled ? 'blur(12px)' : 'none',
           borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
         }}
@@ -44,11 +44,12 @@ export default function HomePage() {
           <Link href="/" className="flex items-center gap-2 text-white font-bold text-base tracking-tight select-none">
             <span
               className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: '#f97316' }}
+              style={{ background: '#C4622D' }}
             >
-              <Home size={14} className="text-white" />
+              <MapPin size={14} className="text-white" />
             </span>
-            Seu Corretor GO
+            <span style={{ fontWeight: 700 }}>Só Terrenos</span>
+            <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -96,23 +97,23 @@ export default function HomePage() {
       {/* ── HERO ── */}
       <section
         className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden pt-16"
-        style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2e44 50%, #0d2137 100%)' }}
+        style={{ background: 'linear-gradient(160deg, #2D4A2D 0%, #1A2E1A 100%)' }}
       >
-        {/* Animated grid */}
+        {/* Geo-coordinate grid */}
         <div
           className="absolute inset-0 pointer-events-none animate-grid"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+              'linear-gradient(rgba(61,107,61,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(61,107,61,0.08) 1px, transparent 1px)',
             backgroundSize: '50px 50px',
           }}
         />
 
-        {/* Orange glow blob */}
+        {/* Terracotta glow blob */}
         <div
           className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse, rgba(249,115,22,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(196,98,45,0.12) 0%, transparent 70%)',
             filter: 'blur(40px)',
           }}
         />
@@ -124,7 +125,7 @@ export default function HomePage() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-400" />
           </span>
-          Goiânia e Região · Especialista em Lotes e Loteamentos
+          Goiânia e Região · Especialista em Terrenos
         </div>
 
         {/* Headline */}
@@ -133,7 +134,7 @@ export default function HomePage() {
           <br />
           <span
             className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+            style={{ backgroundImage: 'linear-gradient(135deg, #C4622D 0%, #D4794A 100%)' }}
           >
             Sem pressão. Sem ligações.
           </span>
@@ -152,8 +153,8 @@ export default function HomePage() {
             href="/conversar"
             className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
             style={{
-              background: '#f97316',
-              boxShadow: '0 8px 40px rgba(249,115,22,0.4)',
+              background: '#C4622D',
+              boxShadow: '0 8px 40px rgba(196,98,45,0.4)',
             }}
           >
             <MessageCircle size={18} />
@@ -193,14 +194,14 @@ export default function HomePage() {
       <section
         id="como-funciona"
         className="py-28 px-6"
-        style={{ background: '#0d1624' }}
+        style={{ background: '#F5F0E8' }}
       >
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-20">
-            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">
+            <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: '#C4622D' }}>
               Como funciona
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1A2E1A]">
               Simples assim
             </h2>
           </div>
@@ -209,7 +210,7 @@ export default function HomePage() {
             {/* Connector line */}
             <div
               className="hidden md:block absolute top-10 left-[calc(16.67%+3rem)] right-[calc(16.67%+3rem)] h-px"
-              style={{ background: 'linear-gradient(90deg, transparent, rgba(249,115,22,0.25), transparent)' }}
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(196,98,45,0.3), transparent)' }}
             />
 
             {/* ── STEP 1 + chat preview ── */}
@@ -217,19 +218,19 @@ export default function HomePage() {
               <div className="flex flex-col items-center text-center gap-5 relative group cursor-default">
                 <span
                   className="text-7xl font-black leading-none bg-clip-text text-transparent select-none"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+                  style={{ backgroundImage: 'linear-gradient(135deg, #C4622D 0%, #D4794A 100%)' }}
                 >
                   1
                 </span>
                 <div
                   className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 z-10"
-                  style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ background: 'rgba(196,98,45,0.12)', border: '1px solid rgba(45,74,45,0.12)' }}
                 >
-                  <MessageCircle size={22} className="text-white/70" />
+                  <MessageCircle size={22} className="text-[#1A2E1A]/70" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-white mb-2">Explore e converse</h3>
-                  <p className="text-white/40 text-sm leading-relaxed">
+                  <h3 className="text-base font-semibold text-[#1A2E1A] mb-2">Explore e converse</h3>
+                  <p className="text-[#1A2E1A]/60 text-sm leading-relaxed">
                     Navegue pelo catálogo sem pressão ou converse direto com o Alberto. Basta dizer o que procura — nossa IA busca no catálogo e apresenta as melhores opções para você.
                   </p>
                 </div>
@@ -238,21 +239,21 @@ export default function HomePage() {
               {/* Chat preview mockup */}
               <div
                 className="rounded-2xl overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: '#EDE8DE', border: '1px solid rgba(45,74,45,0.12)' }}
               >
                 <div
                   className="flex items-center gap-2 px-3 py-2.5 border-b"
-                  style={{ background: 'rgba(10,22,40,0.6)', borderColor: 'rgba(255,255,255,0.07)' }}
+                  style={{ background: 'rgba(45,74,45,0.06)', borderColor: 'rgba(45,74,45,0.12)' }}
                 >
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                    style={{ background: '#C4622D' }}
                   >
                     A
                   </div>
-                  <span className="text-white/60 text-xs font-medium">Alberto</span>
-                  <span className="ml-auto flex items-center gap-1.5 text-emerald-400 text-xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  <span className="text-[#1A2E1A]/60 text-xs font-medium">Alberto</span>
+                  <span className="ml-auto flex items-center gap-1.5 text-emerald-600 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block" />
                     Online
                   </span>
                 </div>
@@ -261,8 +262,8 @@ export default function HomePage() {
                     <div
                       className="px-3 py-2 rounded-2xl rounded-tr-sm text-white text-xs leading-relaxed"
                       style={{
-                        background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                        boxShadow: '0 4px 14px rgba(249,115,22,0.22)',
+                        background: '#C4622D',
+                        boxShadow: '0 4px 14px rgba(196,98,45,0.22)',
                         maxWidth: '88%',
                       }}
                     >
@@ -272,14 +273,14 @@ export default function HomePage() {
                   <div className="flex items-end gap-2">
                     <div
                       className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+                      style={{ background: '#C4622D' }}
                     >
                       A
                     </div>
                     <div
                       className="px-3 py-2 rounded-2xl rounded-tl-sm text-white/90 text-xs leading-relaxed"
                       style={{
-                        background: '#1a2e44',
+                        background: '#2D4A2D',
                         border: '1px solid rgba(255,255,255,0.06)',
                         maxWidth: '80%',
                       }}
@@ -295,19 +296,19 @@ export default function HomePage() {
             <div className="flex flex-col items-center text-center gap-5 relative group cursor-default">
               <span
                 className="text-7xl font-black leading-none bg-clip-text text-transparent select-none"
-                style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+                style={{ backgroundImage: 'linear-gradient(135deg, #C4622D 0%, #D4794A 100%)' }}
               >
                 2
               </span>
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 z-10"
-                style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(45,74,45,0.12)' }}
               >
-                <Bot size={22} className="text-white/70" />
+                <Bot size={22} className="text-[#1A2E1A]/70" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white mb-2">Tire todas as dúvidas</h3>
-                <p className="text-white/40 text-sm leading-relaxed">
+                <h3 className="text-base font-semibold text-[#1A2E1A] mb-2">Tire todas as dúvidas</h3>
+                <p className="text-[#1A2E1A]/60 text-sm leading-relaxed">
                   O Alberto te conta tudo sobre cada empreendimento: diferenciais, localização, plantas disponíveis, formas de pagamento. Compare quantas opções quiser, no seu tempo.
                 </p>
               </div>
@@ -317,19 +318,19 @@ export default function HomePage() {
             <div className="flex flex-col items-center text-center gap-5 relative group cursor-default">
               <span
                 className="text-7xl font-black leading-none bg-clip-text text-transparent select-none"
-                style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+                style={{ backgroundImage: 'linear-gradient(135deg, #C4622D 0%, #D4794A 100%)' }}
               >
                 3
               </span>
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 z-10"
-                style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(45,74,45,0.12)' }}
               >
-                <Calendar size={22} className="text-white/70" />
+                <Calendar size={22} className="text-[#1A2E1A]/70" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white mb-2">Fale com o corretor quando quiser</h3>
-                <p className="text-white/40 text-sm leading-relaxed">
+                <h3 className="text-base font-semibold text-[#1A2E1A] mb-2">Fale com o corretor quando quiser</h3>
+                <p className="text-[#1A2E1A]/60 text-sm leading-relaxed">
                   Decidiu? Conecte-se com o corretor apenas para agendar uma visita ou tirar dúvidas finais. Nada de ligações ou mensagens não solicitadas.
                 </p>
               </div>
@@ -341,11 +342,11 @@ export default function HomePage() {
       {/* ── POR QUE LOTES ── */}
       <section
         className="py-28 px-6"
-        style={{ background: '#0a1628' }}
+        style={{ background: '#1A2E1A' }}
       >
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">
+            <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: '#D4794A' }}>
               Proposta de valor
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-white">
@@ -359,7 +360,7 @@ export default function HomePage() {
                 icon: Home,
                 title: 'Construa do seu jeito',
                 desc: 'Projete a casa dos seus sonhos, no seu tempo, do zero.',
-                color: '#f97316',
+                color: '#C4622D',
               },
               {
                 icon: ShieldCheck,
@@ -408,14 +409,14 @@ export default function HomePage() {
       <section
         id="diferenciais"
         className="py-28 px-6"
-        style={{ background: '#0d1624' }}
+        style={{ background: '#F5F0E8' }}
       >
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-orange-400 text-sm font-semibold uppercase tracking-widest mb-3">
+            <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: '#C4622D' }}>
               Diferenciais
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-white">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#1A2E1A]">
               Por que diferente?
             </h2>
           </div>
@@ -426,7 +427,7 @@ export default function HomePage() {
                 icon: PhoneOff,
                 title: 'Sem corretor insistente',
                 desc: 'Nada de ligações não solicitadas ou pressão para fechar. Você tem o controle total.',
-                color: '#f97316',
+                color: '#C4622D',
               },
               {
                 icon: Clock,
@@ -451,15 +452,14 @@ export default function HomePage() {
                 key={title}
                 className="group rounded-2xl p-7 transition-all duration-300 hover:-translate-y-1 cursor-default"
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  backdropFilter: 'blur(10px)',
+                  background: '#EDE8DE',
+                  border: '1px solid rgba(45,74,45,0.12)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = `${color}40`
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                  e.currentTarget.style.borderColor = 'rgba(45,74,45,0.12)'
                 }}
               >
                 <div
@@ -468,8 +468,8 @@ export default function HomePage() {
                 >
                   <Icon size={22} style={{ color }} />
                 </div>
-                <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-                <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
+                <h3 className="text-base font-semibold text-[#1A2E1A] mb-2">{title}</h3>
+                <p className="text-[#1A2E1A]/60 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -479,19 +479,19 @@ export default function HomePage() {
       {/* ── CTA FINAL ── */}
       <section
         className="py-32 px-6 text-center relative overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 50% 0%, #1a2e44 0%, #0a1628 65%)' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 0%, #2D4A2D 0%, #1A2E1A 65%)' }}
       >
         {/* Subtle radial glow */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(249,115,22,0.1) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(196,98,45,0.1) 0%, transparent 70%)',
             filter: 'blur(30px)',
           }}
         />
 
         <div className="relative max-w-lg mx-auto">
-          <div className="inline-flex items-center gap-2 text-orange-400 text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 text-sm font-medium mb-6" style={{ color: '#D4794A' }}>
             <Zap size={14} />
             Sem formulários. Só uma conversa.
           </div>
@@ -507,8 +507,8 @@ export default function HomePage() {
             href="/conversar"
             className="inline-flex items-center gap-2 text-white font-semibold px-10 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
             style={{
-              background: '#f97316',
-              boxShadow: '0 8px 40px rgba(249,115,22,0.35)',
+              background: '#C4622D',
+              boxShadow: '0 8px 40px rgba(196,98,45,0.35)',
             }}
           >
             <MessageCircle size={18} />
@@ -518,17 +518,20 @@ export default function HomePage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: '#060e18' }} className="py-10 px-6 border-t border-white/5">
+      <footer style={{ background: '#1A2E1A' }} className="py-10 px-6 border-t border-white/5">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <span
               className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-              style={{ background: '#f97316' }}
+              style={{ background: '#C4622D' }}
             >
-              <Home size={12} className="text-white" />
+              <MapPin size={12} className="text-white" />
             </span>
             <div>
-              <p className="text-white/80 font-semibold text-sm leading-tight">Seu Corretor GO</p>
+              <p className="text-white/80 font-semibold text-sm leading-tight">
+                <span style={{ fontWeight: 700 }}>Só Terrenos</span>{' '}
+                <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
+              </p>
               <p className="text-white/25 text-xs">© 2025 · CRECI-GO</p>
             </div>
           </div>

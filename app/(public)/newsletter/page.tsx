@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Home, Mail, CheckCircle, Loader2, ChevronLeft } from 'lucide-react'
+import { MapPin, Mail, CheckCircle, Loader2, ChevronLeft } from 'lucide-react'
 
 const BENEFITS = [
   'Dicas exclusivas sobre financiamento e compra de imóveis',
@@ -47,19 +47,20 @@ export default function NewsletterPage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2e44 50%, #0d2137 100%)' }}
+      style={{ background: 'linear-gradient(160deg, #2D4A2D 0%, #1A2E1A 100%)' }}
     >
       {/* Navbar */}
       <nav
         className="h-16 flex items-center px-6 border-b shrink-0"
-        style={{ background: 'rgba(10,22,40,0.7)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
+        style={{ background: 'rgba(26,46,26,0.7)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
       >
         <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-white font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#f97316' }}>
-              <Home size={14} className="text-white" />
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#C4622D' }}>
+              <MapPin size={14} className="text-white" />
             </span>
-            Seu Corretor GO
+            <span style={{ fontWeight: 700 }}>Só Terrenos</span>
+            <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
           </Link>
           <Link href="/blog" className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors">
             <ChevronLeft size={14} />
@@ -73,8 +74,8 @@ export default function NewsletterPage() {
           <div className="grid md:grid-cols-2 gap-12 items-start">
             {/* Left — copy */}
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium text-orange-300 border border-orange-400/30 mb-6"
-                style={{ background: 'rgba(249,115,22,0.08)' }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6"
+                style={{ background: 'rgba(196,98,45,0.08)', border: '1px solid rgba(196,98,45,0.3)', color: '#D4794A' }}>
                 <Mail size={12} />
                 Newsletter Gratuita
               </div>
@@ -82,7 +83,7 @@ export default function NewsletterPage() {
                 Fique por dentro do<br />
                 <span
                   className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fbbf24 100%)' }}
+                  style={{ backgroundImage: 'linear-gradient(135deg, #C4622D 0%, #D4794A 100%)' }}
                 >
                   mercado imobiliário
                 </span>
@@ -125,7 +126,8 @@ export default function NewsletterPage() {
                   </p>
                   <Link
                     href="/blog"
-                    className="mt-6 inline-flex items-center gap-2 text-orange-400 text-sm font-medium hover:text-orange-300 transition-colors"
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-80"
+                    style={{ color: '#D4794A' }}
                   >
                     Ver posts do blog
                   </Link>
@@ -145,7 +147,7 @@ export default function NewsletterPage() {
                         onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
                         className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none placeholder-white/25 transition-colors"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(249,115,22,0.5)')}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(196,98,45,0.5)')}
                         onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
                       />
                     </div>
@@ -159,7 +161,7 @@ export default function NewsletterPage() {
                         onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                         className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none placeholder-white/25 transition-colors"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(249,115,22,0.5)')}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(196,98,45,0.5)')}
                         onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
                       />
                     </div>
@@ -173,7 +175,7 @@ export default function NewsletterPage() {
                         onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
                         className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none placeholder-white/25 transition-colors"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(249,115,22,0.5)')}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(196,98,45,0.5)')}
                         onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
                       />
                     </div>
@@ -186,7 +188,7 @@ export default function NewsletterPage() {
                       type="submit"
                       disabled={loading}
                       className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-                      style={{ background: '#f97316', boxShadow: '0 8px 30px rgba(249,115,22,0.3)' }}
+                      style={{ background: '#C4622D', boxShadow: '0 8px 30px rgba(196,98,45,0.3)' }}
                     >
                       {loading ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
                       {loading ? 'Cadastrando...' : 'Quero receber novidades'}

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
-import { Home, Tag, ChevronLeft, Mail, ArrowRight } from 'lucide-react'
+import { MapPin, Tag, ChevronLeft, Mail, ArrowRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 
@@ -19,7 +19,7 @@ export async function generateMetadata(
   const post = await prisma.post.findFirst({ where: { slug, publicado: true }, select: { titulo: true, resumo: true, capa: true } })
   if (!post) return { title: 'Post não encontrado' }
   return {
-    title: `${post.titulo} · Blog Seu Corretor GO`,
+    title: `${post.titulo} · Blog Só Terrenos GO`,
     description: post.resumo,
     openGraph: post.capa ? { images: [post.capa] } : undefined,
   }
@@ -31,18 +31,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound()
 
   return (
-    <div className="min-h-screen" style={{ background: '#0a1628' }}>
+    <div className="min-h-screen" style={{ background: '#1A2E1A' }}>
       {/* Navbar */}
       <nav
         className="sticky top-0 z-50 h-16 flex items-center px-6 border-b"
-        style={{ background: 'rgba(10,22,40,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
+        style={{ background: 'rgba(26,46,26,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
       >
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-white font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#f97316' }}>
-              <Home size={14} className="text-white" />
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#C4622D' }}>
+              <MapPin size={14} className="text-white" />
             </span>
-            Seu Corretor GO
+            <span style={{ fontWeight: 700 }}>Só Terrenos</span>
+            <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
           </Link>
           <Link href="/blog" className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors">
             <ChevronLeft size={14} />
@@ -66,7 +67,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.categoria && (
             <span
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full text-white"
-              style={{ background: 'rgba(249,115,22,0.8)' }}
+              style={{ background: 'rgba(196,98,45,0.8)' }}
             >
               <Tag size={10} />
               {post.categoria}
@@ -79,7 +80,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <h1 className="text-3xl md:text-4xl font-black text-white leading-tight mb-6">{post.titulo}</h1>
 
         {/* Summary */}
-        <p className="text-white/60 text-lg leading-relaxed mb-8 border-l-4 pl-4" style={{ borderColor: '#f97316' }}>
+        <p className="text-white/60 text-lg leading-relaxed mb-8 border-l-4 pl-4" style={{ borderColor: '#C4622D' }}>
           {post.resumo}
         </p>
 
@@ -108,13 +109,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               blockquote: ({ children }) => (
                 <blockquote
                   className="border-l-4 pl-4 my-6 text-white/60 italic"
-                  style={{ borderColor: '#f97316' }}
+                  style={{ borderColor: '#C4622D' }}
                 >
                   {children}
                 </blockquote>
               ),
               code: ({ children }) => (
-                <code className="px-1.5 py-0.5 rounded text-sm font-mono text-orange-300" style={{ background: 'rgba(249,115,22,0.1)' }}>
+                <code className="px-1.5 py-0.5 rounded text-sm font-mono" style={{ background: 'rgba(196,98,45,0.1)', color: '#D4794A' }}>
                   {children}
                 </code>
               ),
@@ -124,7 +125,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               ),
               hr: () => <hr className="my-8 border-white/10" />,
               a: ({ href, children }) => (
-                <a href={href} className="text-orange-400 underline underline-offset-2 hover:text-orange-300 transition-colors">
+                <a href={href} className="underline underline-offset-2 transition-colors" style={{ color: '#D4794A' }}>
                   {children}
                 </a>
               ),
@@ -137,9 +138,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         {/* Newsletter CTA */}
         <div
           className="mt-16 rounded-2xl p-8 text-center"
-          style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.1) 0%, rgba(251,191,36,0.05) 100%)', border: '1px solid rgba(249,115,22,0.2)' }}
+          style={{ background: 'linear-gradient(135deg, rgba(196,98,45,0.1) 0%, rgba(212,121,74,0.05) 100%)', border: '1px solid rgba(196,98,45,0.2)' }}
         >
-          <Mail size={28} className="text-orange-400 mx-auto mb-3" />
+          <Mail size={28} className="mx-auto mb-3" style={{ color: '#D4794A' }} />
           <h2 className="text-white font-bold text-xl mb-2">Gostou do conteúdo?</h2>
           <p className="text-white/50 text-sm mb-6">
             Receba novidades e dicas do mercado imobiliário de Goiânia direto no seu e-mail e WhatsApp.
@@ -147,7 +148,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <Link
             href="/newsletter"
             className="inline-flex items-center gap-2 text-white font-semibold px-8 py-3 rounded-2xl transition-all hover:opacity-90"
-            style={{ background: '#f97316', boxShadow: '0 8px 30px rgba(249,115,22,0.3)' }}
+            style={{ background: '#C4622D', boxShadow: '0 8px 30px rgba(196,98,45,0.3)' }}
           >
             Assinar newsletter
             <ArrowRight size={15} />

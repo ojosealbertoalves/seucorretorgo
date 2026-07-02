@@ -11,7 +11,7 @@ const STATUS_MAP: Record<string, string> = {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  LANCAMENTO: '#f97316',
+  LANCAMENTO: '#C4622D',
   EM_OBRAS: '#3b82f6',
   PRONTO: '#10b981',
 }
@@ -70,13 +70,13 @@ function TypingIndicator() {
     <div className="flex items-end gap-2 animate-fade-in-up">
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-        style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+        style={{ background: '#C4622D' }}
       >
         A
       </div>
       <div
         className="px-4 py-3.5 rounded-2xl rounded-tl-sm flex items-center gap-1"
-        style={{ background: '#1a2e44', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: '#2D4A2D', border: '1px solid rgba(255,255,255,0.06)' }}
       >
         <span className="text-white/40 text-xs mr-2">Alberto está digitando</span>
         {[0, 1, 2].map((i) => (
@@ -97,12 +97,12 @@ function PropertyCard({ card }: { card: CardData }) {
   const current = photos[photoIdx] ?? null
   const mainTypo = card.tipologias[0]
   const badges = card.diferenciais.slice(0, 3)
-  const statusColor = STATUS_COLOR[card.status] ?? '#f97316'
+  const statusColor = STATUS_COLOR[card.status] ?? '#C4622D'
 
   return (
     <div
       className="rounded-2xl overflow-hidden shrink-0 w-52 sm:w-64 flex flex-col animate-slide-in-right"
-      style={{ background: '#0d1f2f', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
     >
       {/* ── FOTO ── */}
       <div className="w-full h-36 relative bg-gray-900 overflow-hidden">
@@ -128,7 +128,7 @@ function PropertyCard({ card }: { card: CardData }) {
         {current && (
           <div
             className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, rgba(13,31,47,0.7), transparent)' }}
+            style={{ background: 'linear-gradient(to top, rgba(26,46,26,0.7), transparent)' }}
           />
         )}
 
@@ -185,7 +185,7 @@ function PropertyCard({ card }: { card: CardData }) {
           </p>
         </div>
 
-        <p className="font-bold text-sm" style={{ color: '#f97316' }}>
+        <p className="font-bold text-sm" style={{ color: '#C4622D' }}>
           R$ {fmt(card.precoMin)}
           {card.precoMin !== card.precoMax && ` – ${fmt(card.precoMax)}`}
         </p>
@@ -214,7 +214,7 @@ function PropertyCard({ card }: { card: CardData }) {
         <Link
           href={`/catalogo/${card.slug}`}
           className="mt-auto block text-center text-xs font-semibold py-2 rounded-xl transition-all duration-200 hover:opacity-80 hover:scale-[1.02] text-white"
-          style={{ background: '#f97316' }}
+          style={{ background: '#C4622D' }}
         >
           Ver detalhes
         </Link>
@@ -231,8 +231,8 @@ function MessageBubble({ message }: { message: Message }) {
           <div
             className="px-4 py-3 rounded-2xl rounded-tr-sm text-white text-sm leading-relaxed whitespace-pre-wrap"
             style={{
-              background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-              boxShadow: '0 4px 14px rgba(249,115,22,0.22)',
+              background: '#C4622D',
+              boxShadow: '0 4px 14px rgba(196,98,45,0.22)',
             }}
           >
             {message.content}
@@ -248,7 +248,7 @@ function MessageBubble({ message }: { message: Message }) {
       <div className="flex items-end gap-2">
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-          style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+          style={{ background: '#C4622D' }}
         >
           A
         </div>
@@ -259,7 +259,7 @@ function MessageBubble({ message }: { message: Message }) {
                 message.isError ? 'text-red-300' : 'text-white/90'
               }`}
               style={{
-                background: message.isError ? 'rgba(239,68,68,0.12)' : '#1a2e44',
+                background: message.isError ? 'rgba(239,68,68,0.12)' : '#2D4A2D',
                 border: message.isError
                   ? '1px solid rgba(239,68,68,0.25)'
                   : '1px solid rgba(255,255,255,0.06)',
@@ -437,7 +437,7 @@ export default function ConversarPage() {
   const showTyping = loading && lastMsg?.role === 'assistant' && lastMsg?.content === ''
 
   return (
-    <div className="flex flex-col h-[100dvh]" style={{ background: '#0f1f30' }}>
+    <div className="flex flex-col h-[100dvh]" style={{ background: '#1A2E1A' }}>
       {/* ── TOAST ── */}
       {toast && (
         <div
@@ -453,7 +453,7 @@ export default function ConversarPage() {
       <header
         className="shrink-0 flex items-center gap-3 px-4 h-16 border-b"
         style={{
-          background: '#0a1628',
+          background: '#2D4A2D',
           borderColor: 'rgba(255,255,255,0.07)',
           boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
         }}
@@ -467,14 +467,14 @@ export default function ConversarPage() {
 
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-          style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
+          style={{ background: '#C4622D' }}
         >
           A
         </div>
 
         <div className="flex-1 min-w-0">
           <p className="text-white font-semibold text-sm leading-tight">Alberto</p>
-          <p className="text-white/40 text-xs leading-tight">Assistente Seu Corretor GO</p>
+          <p className="text-white/40 text-xs leading-tight">Assistente Só Terrenos GO</p>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -489,7 +489,7 @@ export default function ConversarPage() {
       {/* ── MESSAGES ── */}
       <div
         className="flex-1 overflow-y-auto px-4 py-6 space-y-5"
-        style={{ background: 'linear-gradient(180deg, #0f1f30 0%, #0a1628 100%)' }}
+        style={{ background: '#1A2E1A' }}
       >
         <div className="max-w-3xl mx-auto space-y-5">
           {messages.map((msg) => (
@@ -503,7 +503,7 @@ export default function ConversarPage() {
       {/* ── INPUT ── */}
       <div
         className="shrink-0 px-4 py-3 border-t"
-        style={{ background: '#0a1628', borderColor: 'rgba(255,255,255,0.07)' }}
+        style={{ background: '#2D4A2D', borderColor: 'rgba(255,255,255,0.07)' }}
       >
         <div className="max-w-3xl mx-auto">
           <div
@@ -530,7 +530,7 @@ export default function ConversarPage() {
               onClick={sendMessage}
               disabled={!input.trim() || loading}
               className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all duration-200 hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-              style={{ background: '#f97316' }}
+              style={{ background: '#C4622D' }}
             >
               <Send size={14} />
             </button>
