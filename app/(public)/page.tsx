@@ -72,6 +72,12 @@ export default function HomePage() {
               Catálogo
             </Link>
             <Link
+              href="/mapa"
+              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
+            >
+              Mapa
+            </Link>
+            <Link
               href="/proprietarios"
               className="text-white/60 hover:text-white text-sm transition-colors duration-200"
             >
@@ -539,6 +545,7 @@ export default function HomePage() {
           <div className="flex items-center gap-8">
             {[
               { href: '/catalogo', label: 'Catálogo' },
+              { href: '/mapa', label: 'Mapa' },
               { href: '/proprietarios', label: 'Para Proprietários' },
               { href: '/conversar', label: 'Conversar' },
               { href: '/blog', label: 'Blog' },
