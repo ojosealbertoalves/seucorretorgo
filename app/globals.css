@@ -48,15 +48,15 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
 
-  /* Marca: Só Terrenos GO */
-  --brand-primary: #2D4A2D;
-  --brand-primary-mid: #3D6B3D;
-  --brand-accent: #C4622D;
-  --brand-accent-hover: #D4794A;
-  --brand-cream: #F5F0E8;
-  --brand-beige: #EDE8DE;
-  --brand-off-white: #FAFAF7;
-  --brand-dark: #1A2E1A;
+  /* Marca: Só Terrenos GO — paleta Mata Fechada */
+  --brand-primary: #0F1F0F;
+  --brand-primary-dark: #080F08;
+  --brand-accent: #E07B3A;
+  --brand-accent-hover: #C8612A;
+  --brand-cream: #F7F2EA;
+  --brand-green-deep: #1E3A1E;
+  --brand-off-white: #F7F2EA;
+  --brand-dark: #080F08;
 }
 
 html {

@@ -31,19 +31,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound()
 
   return (
-    <div className="min-h-screen" style={{ background: '#1A2E1A' }}>
+    <div className="min-h-screen" style={{ background: '#080F08' }}>
       {/* Navbar */}
       <nav
         className="sticky top-0 z-50 h-16 flex items-center px-6 border-b"
-        style={{ background: 'rgba(26,46,26,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
+        style={{ background: 'rgba(15,31,15,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
       >
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-white font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#C4622D' }}>
+          <Link href="/" className="flex items-center gap-2 font-bold text-base tracking-tight">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E07B3A' }}>
               <MapPin size={14} className="text-white" />
             </span>
-            <span style={{ fontWeight: 700 }}>Só Terrenos</span>
-            <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
+            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
+            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
           </Link>
           <Link href="/blog" className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors">
             <ChevronLeft size={14} />
@@ -67,7 +67,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {post.categoria && (
             <span
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full text-white"
-              style={{ background: 'rgba(196,98,45,0.8)' }}
+              style={{ background: 'rgba(224,123,58,0.8)' }}
             >
               <Tag size={10} />
               {post.categoria}
@@ -80,7 +80,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <h1 className="text-3xl md:text-4xl font-black text-white leading-tight mb-6">{post.titulo}</h1>
 
         {/* Summary */}
-        <p className="text-white/60 text-lg leading-relaxed mb-8 border-l-4 pl-4" style={{ borderColor: '#C4622D' }}>
+        <p className="text-white/60 text-lg leading-relaxed mb-8 border-l-4 pl-4" style={{ borderColor: '#E07B3A' }}>
           {post.resumo}
         </p>
 
@@ -109,13 +109,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               blockquote: ({ children }) => (
                 <blockquote
                   className="border-l-4 pl-4 my-6 text-white/60 italic"
-                  style={{ borderColor: '#C4622D' }}
+                  style={{ borderColor: '#E07B3A' }}
                 >
                   {children}
                 </blockquote>
               ),
               code: ({ children }) => (
-                <code className="px-1.5 py-0.5 rounded text-sm font-mono" style={{ background: 'rgba(196,98,45,0.1)', color: '#D4794A' }}>
+                <code className="px-1.5 py-0.5 rounded text-sm font-mono" style={{ background: 'rgba(224,123,58,0.1)', color: '#E07B3A' }}>
                   {children}
                 </code>
               ),
@@ -125,7 +125,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               ),
               hr: () => <hr className="my-8 border-white/10" />,
               a: ({ href, children }) => (
-                <a href={href} className="underline underline-offset-2 transition-colors" style={{ color: '#D4794A' }}>
+                <a href={href} className="underline underline-offset-2 transition-colors" style={{ color: '#E07B3A' }}>
                   {children}
                 </a>
               ),
@@ -138,9 +138,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         {/* Newsletter CTA */}
         <div
           className="mt-16 rounded-2xl p-8 text-center"
-          style={{ background: 'linear-gradient(135deg, rgba(196,98,45,0.1) 0%, rgba(212,121,74,0.05) 100%)', border: '1px solid rgba(196,98,45,0.2)' }}
+          style={{ background: 'linear-gradient(135deg, rgba(224,123,58,0.1) 0%, rgba(224,123,58,0.05) 100%)', border: '1px solid rgba(224,123,58,0.2)' }}
         >
-          <Mail size={28} className="mx-auto mb-3" style={{ color: '#D4794A' }} />
+          <Mail size={28} className="mx-auto mb-3" style={{ color: '#E07B3A' }} />
           <h2 className="text-white font-bold text-xl mb-2">Gostou do conteúdo?</h2>
           <p className="text-white/50 text-sm mb-6">
             Receba novidades e dicas do mercado imobiliário de Goiânia direto no seu e-mail e WhatsApp.
@@ -148,7 +148,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <Link
             href="/newsletter"
             className="inline-flex items-center gap-2 text-white font-semibold px-8 py-3 rounded-2xl transition-all hover:opacity-90"
-            style={{ background: '#C4622D', boxShadow: '0 8px 30px rgba(196,98,45,0.3)' }}
+            style={{ background: '#E07B3A', boxShadow: '0 8px 30px rgba(224,123,58,0.3)' }}
           >
             Assinar newsletter
             <ArrowRight size={15} />

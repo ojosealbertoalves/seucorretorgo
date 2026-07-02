@@ -7,11 +7,11 @@ export function AdminNavbar() {
   return (
     <nav
       className="text-white px-6 py-4 flex items-center justify-between shadow-md"
-      style={{ backgroundColor: '#2D4A2D' }}
+      style={{ backgroundColor: '#0F1F0F' }}
     >
       <Link href="/admin" className="font-bold text-lg tracking-tight">
-        <span style={{ fontWeight: 700 }}>Só Terrenos</span>{' '}
-        <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
+        <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>{' '}
+        <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
       </Link>
       <div className="flex items-center gap-6">
         <Link

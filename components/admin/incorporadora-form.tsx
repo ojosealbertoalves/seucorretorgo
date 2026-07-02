@@ -257,7 +257,7 @@ export function IncorporadoraForm({ initialData }: { initialData?: Incorporadora
           type="submit"
           disabled={saving}
           className="text-white"
-          style={{ backgroundColor: '#C4622D' }}
+          style={{ backgroundColor: '#E07B3A' }}
         >
           {saving ? 'Salvando...' : initialData ? 'Salvar alterações' : 'Criar incorporadora'}
         </Button>

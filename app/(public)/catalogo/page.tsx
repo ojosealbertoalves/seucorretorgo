@@ -78,7 +78,7 @@ export default async function CatalogoPage({
                     <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl">🏘</div>
                   )}
                   <div className="absolute top-2 left-2 flex gap-1">
-                    <Badge className={isLote ? 'bg-emerald-600 text-white' : 'bg-[#C4622D] text-white'}>
+                    <Badge className={isLote ? 'bg-emerald-600 text-white' : 'bg-[#E07B3A] text-white'}>
                       {isLote ? 'Loteamento' : STATUS_LABEL[e.status] ?? e.status}
                     </Badge>
                   </div>
@@ -99,7 +99,7 @@ export default async function CatalogoPage({
                       </p>
                     ) : null
                   )}
-                  <p className="text-sm font-medium text-[#C4622D]">
+                  <p className="text-sm font-medium text-[#E07B3A]">
                     {fmt(e.precoMin)}{e.precoMin !== e.precoMax ? ` – ${fmt(e.precoMax)}` : ''}
                   </p>
                 </div>

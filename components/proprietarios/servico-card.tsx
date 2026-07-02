@@ -16,13 +16,13 @@ export function ServicoCard({ icon, titulo, descricao, mensagemWhatsapp }: Props
 
   return (
     <div
-      className="group rounded-2xl p-8 flex flex-col gap-6 border border-white/[0.08] transition-all duration-300 hover:-translate-y-1 hover:border-[#C4622D]/25 hover:shadow-[0_8px_32px_rgba(196,98,45,0.08)]"
+      className="group rounded-2xl p-8 flex flex-col gap-6 border border-white/[0.08] transition-all duration-300 hover:-translate-y-1 hover:border-[#E07B3A]/25 hover:shadow-[0_8px_32px_rgba(224,123,58,0.08)]"
       style={{ background: 'rgba(255,255,255,0.05)' }}
     >
       {/* Icon */}
       <div
         className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
-        style={{ background: '#F7ECE5' }}
+        style={{ background: '#2A1A0F' }}
       >
         {icon}
       </div>
@@ -39,7 +39,7 @@ export function ServicoCard({ icon, titulo, descricao, mensagemWhatsapp }: Props
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 justify-center text-white text-sm font-semibold px-5 py-3 rounded-xl transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
-        style={{ background: '#C4622D' }}
+        style={{ background: '#E07B3A' }}
       >
         <MessageCircle size={16} />
         Falar sobre esse serviço

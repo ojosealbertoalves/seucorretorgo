@@ -33,13 +33,13 @@ export default function LoginPage() {
   return (
     <main
       className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: '#2D4A2D' }}
+      style={{ backgroundColor: '#0F1F0F' }}
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold">
-            <span style={{ color: '#1A2E1A', fontWeight: 700 }}>Só Terrenos</span>{' '}
-            <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
+            <span style={{ color: '#1E3A1E', fontWeight: 700 }}>Só Terrenos</span>{' '}
+            <span style={{ color: '#E07B3A', fontWeight: 700 }}>GO</span>
           </h1>
           <p className="text-gray-500 text-sm mt-1">Painel Administrativo</p>
         </div>
@@ -56,7 +56,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': '#2D4A2D' } as React.CSSProperties}
+              style={{ '--tw-ring-color': '#0F1F0F' } as React.CSSProperties}
               placeholder="admin@seucorretorgo.com.br"
             />
           </div>
@@ -85,7 +85,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             className="w-full py-3 rounded-lg text-white font-semibold mt-2 transition-opacity hover:opacity-90 disabled:opacity-60"
-            style={{ backgroundColor: '#C4622D' }}
+            style={{ backgroundColor: '#E07B3A' }}
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

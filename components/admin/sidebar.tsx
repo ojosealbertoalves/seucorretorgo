@@ -21,12 +21,12 @@ export function AdminSidebar() {
   return (
     <aside
       className="flex flex-col w-64 min-h-screen shrink-0"
-      style={{ backgroundColor: '#2D4A2D' }}
+      style={{ backgroundColor: '#0F1F0F', borderRight: '1px solid #1E3A1E' }}
     >
       <div className="px-6 py-5 border-b border-white/10">
         <h1 className="text-white font-bold text-lg tracking-tight">
-          <span style={{ fontWeight: 700 }}>Só Terrenos</span>{' '}
-          <span style={{ color: '#C4622D', fontWeight: 700 }}>GO</span>
+          <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>{' '}
+          <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
         </h1>
         <p className="text-white/50 text-xs mt-0.5">Painel Administrativo</p>
       </div>
@@ -44,7 +44,7 @@ export function AdminSidebar() {
                     ? 'text-white font-medium'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 )}
-                style={isActive ? { backgroundColor: '#C4622D' } : undefined}
+                style={isActive ? { backgroundColor: '#E07B3A' } : undefined}
               >
                 <Icon size={18} />
                 {label}
