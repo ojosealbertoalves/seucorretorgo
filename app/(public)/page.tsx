@@ -1,202 +1,285 @@
-'use client'
+export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { prisma } from '@/lib/prisma'
 import {
   MessageCircle,
-  Search,
-  Bot,
-  Calendar,
-  PhoneOff,
-  Clock,
   Building2,
   MapPin,
-  ChevronDown,
-  Home,
-  Zap,
   Shield,
-  ShieldCheck,
-  TrendingUp,
-  Wallet,
+  PhoneOff,
+  Clock,
+  Bot,
+  Calendar,
+  BookOpen,
+  Tag,
+  ArrowRight,
 } from 'lucide-react'
+import HomeNavbar from '@/components/home-navbar'
+import MapaHero from '@/components/mapa-hero-loader'
 
-export default function HomePage() {
-  const [scrolled, setScrolled] = useState(false)
+const STATUS_LABEL: Record<string, string> = {
+  LANCAMENTO: 'Lançamento',
+  EM_OBRAS: 'Em obras',
+  PRONTO: 'Pronto',
+}
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+function fmtPreco(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 })
+}
+
+function fmtDate(d: Date) {
+  return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+export default async function HomePage() {
+  const [pins, empreendimentos, posts] = await Promise.all([
+    prisma.empreendimento.findMany({
+      where: { ativo: true, latitude: { not: null }, longitude: { not: null } },
+      select: { slug: true, nome: true, bairro: true, latitude: true, longitude: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.empreendimento.findMany({
+      where: { ativo: true },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      include: {
+        incorporadora: { select: { nome: true } },
+        fotos: { where: { tipo: 'FACHADA' }, orderBy: { ordem: 'asc' }, take: 1 },
+      },
+    }),
+    prisma.post.findMany({
+      where: { publicado: true },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: { id: true, titulo: true, slug: true, resumo: true, capa: true, categoria: true, createdAt: true },
+    }),
+  ])
+
+  const mapPins = pins.map((p) => ({
+    slug: p.slug,
+    nome: p.nome,
+    bairro: p.bairro,
+    latitude: p.latitude!,
+    longitude: p.longitude!,
+  }))
 
   return (
     <>
-      {/* ── NAVBAR ── */}
-      <nav
-        className="fixed top-0 inset-x-0 z-50 h-16 transition-all duration-300"
-        style={{
-          background: scrolled ? 'rgba(15,31,15,0.92)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(12px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
-        }}
-      >
-        <div className="h-full max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-base tracking-tight select-none">
-            <span
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: '#E07B3A' }}
-            >
-              <MapPin size={14} className="text-white" />
-            </span>
-            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
-            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
-          </Link>
+      <HomeNavbar />
 
-          <div className="hidden md:flex items-center gap-8">
-            <a
-              href="#como-funciona"
-              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
-            >
-              Como funciona
-            </a>
-            <a
-              href="#diferenciais"
-              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
-            >
-              Diferenciais
-            </a>
-            <Link
-              href="/catalogo"
-              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
-            >
-              Catálogo
-            </Link>
-            <Link
-              href="/mapa"
-              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
-            >
-              Mapa
-            </Link>
-            <Link
-              href="/proprietarios"
-              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
-            >
-              Para Proprietários
-            </Link>
-            <Link
-              href="/blog"
-              className="text-white/60 hover:text-white text-sm transition-colors duration-200"
-            >
-              Blog
-            </Link>
-          </div>
-
-          <Link
-            href="/admin/login"
-            className="text-white/50 hover:text-white/90 text-xs font-medium px-3 py-1.5 rounded-lg transition-all duration-200 border border-white/15 hover:border-white/35"
-          >
-            Acesso admin
-          </Link>
-        </div>
-      </nav>
-
-      {/* ── HERO ── */}
+      {/* ── SEÇÃO 1 · HERO DIVIDIDO ── */}
       <section
-        className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden pt-16"
-        style={{ background: 'linear-gradient(160deg, #0F1F0F 0%, #080F08 100%)' }}
+        className="pt-16 flex flex-col lg:flex-row"
+        style={{ background: '#080F08', minHeight: '90vh' }}
       >
-        {/* Geo-coordinate grid */}
-        <div
-          className="absolute inset-0 pointer-events-none animate-grid"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(30,58,30,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(30,58,30,0.08) 1px, transparent 1px)',
-            backgroundSize: '50px 50px',
-          }}
-        />
+        {/* Lado esquerdo */}
+        <div className="flex-1 flex flex-col justify-center px-6 lg:px-16 py-16">
+          <div className="max-w-xl mx-auto lg:mx-0 w-full">
+            <div
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-7"
+              style={{ border: '1px solid #1E3A1E', color: '#E07B3A', background: 'rgba(30,58,30,0.3)' }}
+            >
+              ✦ A 1ª plataforma de Goiânia especializada em terrenos
+            </div>
 
-        {/* Terracotta glow blob */}
-        <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse, rgba(224,123,58,0.08) 0%, transparent 70%)',
-            filter: 'blur(40px)',
-          }}
-        />
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.08] tracking-tight mb-5">
+              Encontre seu terreno
+              <br />
+              <span style={{ color: '#E07B3A' }}>ideal</span> em Goiânia
+            </h1>
 
-        {/* Badge */}
-        <div className="relative mb-8 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium text-white/70 border border-white/15"
-          style={{ background: 'rgba(255,255,255,0.06)' }}>
-          <span className="relative flex w-1.5 h-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-400" />
-          </span>
-          Goiânia e Região · Especialista em Terrenos
+            <p
+              className="text-base md:text-lg max-w-lg leading-relaxed mb-8"
+              style={{ color: 'rgba(247,242,234,0.7)' }}
+            >
+              Para comprar, construir ou investir. Somos a plataforma especializada em
+              lotes e loteamentos de Goiânia e região — e usamos IA para te ajudar da
+              melhor forma possível.
+            </p>
+
+            {/* Mini card do Alberto */}
+            <div
+              className="rounded-xl p-4 mb-4"
+              style={{ background: '#0F1F0F', border: '1px solid #1E3A1E' }}
+            >
+              <div className="flex items-center gap-2.5 mb-3">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                  style={{ background: '#E07B3A' }}
+                >
+                  A
+                </div>
+                <p className="text-white text-sm font-semibold">
+                  Alberto <span className="text-white/40 font-normal">· IA Especialista</span>
+                </p>
+                <span
+                  className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full"
+                  style={{ color: '#34D399', background: 'rgba(16,185,129,0.1)' }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  Online agora
+                </span>
+              </div>
+
+              <div
+                className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 mb-3 text-sm leading-relaxed text-white/85"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(30,58,30,0.5)' }}
+              >
+                Olá! Sou o Alberto. Me diga o que você procura — tipo de terreno,
+                região, orçamento — e vou encontrar as melhores opções para você. 🏡
+              </div>
+
+              <Link
+                href="/conversar"
+                className="block w-full text-left px-3.5 py-3 rounded-lg text-sm text-white/35 mb-3 transition-colors hover:text-white/50"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #1E3A1E' }}
+              >
+                Ex: Lote 300m² em condomínio fechado...
+              </Link>
+
+              <Link
+                href="/conversar"
+                className="flex items-center justify-center gap-2 w-full text-white font-semibold px-4 py-3 rounded-lg text-sm transition-all hover:opacity-90"
+                style={{ background: '#E07B3A' }}
+              >
+                <MessageCircle size={16} />
+                Conversar com o Alberto →
+              </Link>
+            </div>
+
+            <p className="text-white/30 text-xs">
+              Sem pressão · Sem ligações · Você decide quando falar com um corretor
+            </p>
+          </div>
         </div>
 
-        {/* Headline */}
-        <h1 className="relative text-5xl md:text-6xl lg:text-7xl font-black text-[#F7F2EA] leading-[1.05] tracking-tight max-w-3xl mb-6">
-          O corretor do futuro.
-          <br />
-          <span
-            className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(135deg, #E07B3A 0%, #C8612A 100%)' }}
+        {/* Lado direito · mapa */}
+        <div className="hidden lg:block flex-1 p-6">
+          <div
+            className="w-full h-full rounded-xl overflow-hidden"
+            style={{ minHeight: '500px', border: '1px solid #1E3A1E' }}
           >
-            Sem pressão. Sem ligações.
-          </span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="relative text-white/55 text-base md:text-lg max-w-xl leading-relaxed mb-10">
-          Especialista em lotes e loteamentos em condomínios fechados em Goiânia.
-          Converse com o Alberto, nossa IA, explore terrenos, compare opções e decida
-          no seu ritmo — fale com um corretor apenas se quiser agendar uma visita.
-        </p>
-
-        {/* CTA buttons */}
-        <div className="relative flex flex-col sm:flex-row items-center gap-3 mb-4">
-          <Link
-            href="/conversar"
-            className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
-            style={{
-              background: '#E07B3A',
-              boxShadow: '0 8px 40px rgba(224,123,58,0.4)',
-            }}
-          >
-            <MessageCircle size={18} />
-            Conversar com o Alberto
-          </Link>
-          <Link
-            href="/catalogo"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white font-medium px-8 py-4 rounded-2xl text-base border border-white/25 hover:border-white/50 hover:bg-white/5 transition-all duration-200"
-          >
-            <Search size={18} />
-            Ver catálogo
-          </Link>
-        </div>
-
-        {/* Sub-CTA support line */}
-        <p className="relative text-white/30 text-xs mb-8">
-          Também trabalhamos com imóveis novos selecionados
-        </p>
-
-        {/* Stats */}
-        <div className="relative flex items-center gap-4 text-white/35 text-sm flex-wrap justify-center">
-          <span>24h disponível</span>
-          <span className="w-1 h-1 rounded-full bg-white/20" />
-          <span>100% sem pressão</span>
-          <span className="w-1 h-1 rounded-full bg-white/20" />
-          <span>Só Goiânia</span>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 flex flex-col items-center gap-0.5 text-white/25 animate-bounce">
-          <ChevronDown size={16} />
-          <ChevronDown size={16} className="-mt-2.5 opacity-50" />
+            <MapaHero empreendimentos={mapPins} />
+          </div>
         </div>
       </section>
 
-      {/* ── COMO FUNCIONA ── */}
+      {/* ── SEÇÃO 2 · CATÁLOGO ── */}
+      <section style={{ background: '#0F1F0F' }} className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-end justify-between mb-10 flex-wrap gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: '#E07B3A' }}>
+                Empreendimentos
+              </p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white">
+                Últimos loteamentos cadastrados
+              </h2>
+            </div>
+            <Link
+              href="/catalogo"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
+              style={{ color: '#E07B3A' }}
+            >
+              Ver todos <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {empreendimentos.length === 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-xl aspect-[4/5] flex items-center justify-center"
+                  style={{
+                    background: '#080F08',
+                    border: '1px solid #1E3A1E',
+                    backgroundImage:
+                      'linear-gradient(rgba(30,58,30,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(30,58,30,0.15) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px',
+                  }}
+                >
+                  <p className="text-white/30 text-sm text-center px-6">Em breve novos empreendimentos</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {empreendimentos.map((e) => {
+                const foto = e.fotos[0]
+                const isLote = e.tipoNegocio === 'LOTE'
+                return (
+                  <Link
+                    key={e.id}
+                    href={`/catalogo/${e.slug}`}
+                    className="group rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 border border-[#1E3A1E] hover:border-[#E07B3A]"
+                    style={{ background: '#080F08' }}
+                  >
+                    <div className="relative aspect-video" style={{ background: '#0F1F0F' }}>
+                      {foto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={foto.url} alt={e.nome} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/15 text-4xl">
+                          🏘
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3 flex gap-1.5">
+                        <span
+                          className="text-xs font-semibold px-2.5 py-1 rounded-full text-white"
+                          style={{ background: 'rgba(224,123,58,0.9)' }}
+                        >
+                          {STATUS_LABEL[e.status] ?? e.status}
+                        </span>
+                        <span
+                          className="text-xs font-semibold px-2.5 py-1 rounded-full text-white"
+                          style={{ background: 'rgba(15,31,15,0.9)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        >
+                          {isLote ? 'Lote' : 'Imóvel'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <h3 className="text-white font-bold text-base mb-1">
+                        {e.nome}
+                      </h3>
+                      <p className="text-white/40 text-sm mb-3">
+                        {e.incorporadora.nome} · {e.bairro}
+                      </p>
+                      <p className="text-sm font-semibold mb-3" style={{ color: '#E07B3A' }}>
+                        A partir de {fmtPreco(e.precoMin)}
+                      </p>
+                      {e.diferenciais.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {e.diferenciais.slice(0, 2).map((d) => (
+                            <span
+                              key={d}
+                              className="text-xs px-2.5 py-1 rounded-full text-white/60"
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            >
+                              {d}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div
+                        className="text-sm font-semibold text-center py-2.5 rounded-lg transition-colors"
+                        style={{ background: 'rgba(224,123,58,0.12)', color: '#E07B3A' }}
+                      >
+                        Ver empreendimento
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── SEÇÃO 3 · COMO FUNCIONA ── */}
       <section
         id="como-funciona"
         className="py-28 px-6"
@@ -345,84 +428,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── POR QUE LOTES ── */}
-      <section
-        className="py-28 px-6"
-        style={{ background: '#080F08' }}
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: '#E07B3A' }}>
-              Proposta de valor
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#F7F2EA]">
-              Por que investir em lote?
-            </h2>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              {
-                icon: Home,
-                title: 'Construa do seu jeito',
-                desc: 'Projete a casa dos seus sonhos, no seu tempo, do zero.',
-                color: '#E07B3A',
-              },
-              {
-                icon: ShieldCheck,
-                title: 'Segurança de condomínio',
-                desc: 'Portaria 24h, infraestrutura completa e vizinhança selecionada.',
-                color: '#10b981',
-              },
-              {
-                icon: TrendingUp,
-                title: 'Potencial de valorização',
-                desc: 'Terrenos em áreas de expansão de Goiânia com alto potencial.',
-                color: '#3b82f6',
-              },
-              {
-                icon: Wallet,
-                title: 'Flexibilidade financeira',
-                desc: 'Entrada facilitada — parcele o lote e construa quando quiser.',
-                color: '#a855f7',
-              },
-            ].map(({ icon: Icon, title, desc, color }) => (
-              <div
-                key={title}
-                className="rounded-2xl p-6 flex flex-col gap-4"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                }}
-              >
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${color}18` }}
-                >
-                  <Icon size={22} style={{ color }} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-[#F7F2EA] mb-1.5">{title}</h3>
-                  <p className="text-white/40 text-xs leading-relaxed">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── DIFERENCIAIS ── */}
+      {/* ── SEÇÃO 4 · DIFERENCIAIS ── */}
       <section
         id="diferenciais"
         className="py-28 px-6"
-        style={{ background: '#F7F2EA' }}
+        style={{ background: '#080F08' }}
       >
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: '#E07B3A' }}>
               Diferenciais
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#1E3A1E]">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#F7F2EA]">
               Por que diferente?
             </h2>
           </div>
@@ -456,74 +473,112 @@ export default function HomePage() {
             ].map(({ icon: Icon, title, desc, color }) => (
               <div
                 key={title}
-                className="group rounded-2xl p-7 transition-all duration-300 hover:-translate-y-1 cursor-default"
+                className="rounded-2xl p-7"
                 style={{
-                  background: 'white',
-                  border: '1px solid rgba(30,58,30,0.12)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = `${color}40`
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(30,58,30,0.12)'
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                 }}
               >
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
                   style={{ background: `${color}18` }}
                 >
                   <Icon size={22} style={{ color }} />
                 </div>
-                <h3 className="text-base font-semibold text-[#1E3A1E] mb-2">{title}</h3>
-                <p className="text-[#1E3A1E]/60 text-sm leading-relaxed">{desc}</p>
+                <h3 className="text-base font-semibold text-[#F7F2EA] mb-2">{title}</h3>
+                <p className="text-white/40 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CTA FINAL ── */}
-      <section
-        className="py-32 px-6 text-center relative overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 50% 0%, #0F1F0F 0%, #080F08 65%)' }}
-      >
-        {/* Subtle radial glow */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(30,58,30,0.08) 0%, transparent 70%)',
-            filter: 'blur(30px)',
-          }}
-        />
+      {/* ── SEÇÃO 5 · BLOG ── */}
+      {posts.length > 0 && (
+        <section style={{ background: '#0F1F0F' }} className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-end justify-between mb-10 flex-wrap gap-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-white">
+                Conteúdo sobre o mercado de terrenos
+              </h2>
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
+                style={{ color: '#E07B3A' }}
+              >
+                Ver todos os artigos <ArrowRight size={14} />
+              </Link>
+            </div>
 
-        <div className="relative max-w-lg mx-auto">
-          <div className="inline-flex items-center gap-2 text-sm font-medium mb-6" style={{ color: '#E07B3A' }}>
-            <Zap size={14} />
-            Sem formulários. Só uma conversa.
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {posts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group flex flex-col rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                  style={{ background: '#080F08', border: '1px solid #1E3A1E' }}
+                >
+                  <div className="w-full h-44 overflow-hidden relative" style={{ background: '#0F1F0F' }}>
+                    {post.capa ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={post.capa}
+                        alt={post.titulo}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen size={32} className="text-white/15" />
+                      </div>
+                    )}
+                    {post.categoria && (
+                      <span
+                        className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 text-white"
+                        style={{ background: 'rgba(224,123,58,0.85)' }}
+                      >
+                        <Tag size={10} />
+                        {post.categoria}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-5 flex flex-col flex-1">
+                    <p className="text-white/30 text-xs mb-2">{fmtDate(post.createdAt)}</p>
+                    <h3 className="text-white font-bold text-base leading-snug mb-2 line-clamp-2 group-hover:text-[#E07B3A] transition-colors">
+                      {post.titulo}
+                    </h3>
+                    <p className="text-white/50 text-sm leading-relaxed line-clamp-2 flex-1">{post.resumo}</p>
+                    <div className="mt-4 flex items-center gap-1 text-xs font-semibold" style={{ color: '#E07B3A' }}>
+                      Ler artigo <ArrowRight size={12} />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-[#F7F2EA] mb-4 leading-tight">
-            Pronto para encontrar
-            <br />
-            seu lote ou imóvel?
+        </section>
+      )}
+
+      {/* ── SEÇÃO 6 · CTA NEWSLETTER ── */}
+      <section style={{ background: '#1E3A1E' }} className="py-16 px-6 text-center">
+        <div className="max-w-lg mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+            Receba novidades sobre terrenos em Goiânia
           </h2>
-          <p className="text-white/40 mb-10 text-base">
-            O Alberto está disponível agora mesmo.
+          <p className="text-white/60 text-base mb-8">
+            Lançamentos, análises de mercado e oportunidades — direto no seu e-mail e WhatsApp.
           </p>
           <Link
-            href="/conversar"
-            className="inline-flex items-center gap-2 text-white font-semibold px-10 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
-            style={{
-              background: '#E07B3A',
-              boxShadow: '0 8px 40px rgba(224,123,58,0.35)',
-            }}
+            href="/newsletter"
+            className="inline-flex items-center gap-2 text-white font-semibold px-8 py-3.5 rounded-2xl text-base transition-all duration-200 hover:scale-105"
+            style={{ background: '#E07B3A', boxShadow: '0 8px 30px rgba(224,123,58,0.35)' }}
           >
-            <MessageCircle size={18} />
-            Falar com o Alberto
+            Cadastrar na newsletter
           </Link>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* ── SEÇÃO 7 · FOOTER ── */}
       <footer style={{ background: '#080F08' }} className="py-10 px-6 border-t border-white/5">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
@@ -542,7 +597,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-8 flex-wrap justify-center">
             {[
               { href: '/catalogo', label: 'Catálogo' },
               { href: '/mapa', label: 'Mapa' },
