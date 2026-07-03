@@ -73,6 +73,7 @@ model Empreendimento {
   tipologias          Tipologia[]
   lotes               Lote[]
   fotos               Foto[]
+  lotesAnuncios       LoteAnuncio[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 }
@@ -112,6 +113,34 @@ model Foto {
   tipo             TipoFoto       @default(FACHADA)
   ordem            Int            @default(0)
   legenda          String?
+}
+
+model LoteAnuncio {
+  id               String            @id @default(cuid())
+  titulo           String
+  slug             String            @unique
+  descricao        String?
+  bairro           String
+  cidade           String            @default("Goiânia")
+  estado           String            @default("GO")
+  area             Float
+  frente           Float?
+  preco            Float
+  fotos            LoteAnuncioFoto[]
+  loteamentoId     String?
+  loteamento       Empreendimento?   @relation(fields: [loteamentoId], references: [id])
+  ativo            Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model LoteAnuncioFoto {
+  id            String      @id @default(cuid())
+  loteAnuncioId String
+  loteAnuncio   LoteAnuncio @relation(fields: [loteAnuncioId], references: [id], onDelete: Cascade)
+  url           String
+  ordem         Int         @default(0)
+  legenda       String?
 }
 
 model Lead {

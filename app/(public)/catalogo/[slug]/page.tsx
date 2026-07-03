@@ -21,6 +21,7 @@ import {
   Car,
   Ruler,
   LandPlot,
+  ArrowRight,
 } from 'lucide-react'
 
 const STATUS_MAP: Record<string, string> = {
@@ -58,6 +59,7 @@ async function getEmpreendimento(slug: string) {
       fotos: { orderBy: [{ tipo: 'asc' }, { ordem: 'asc' }] },
       tipologias: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
       lotes: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
+      lotesAnuncios: { where: { ativo: true }, orderBy: { createdAt: 'desc' } },
     },
   })
 }
@@ -352,6 +354,42 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
                 latitude={empreendimento.latitude!}
                 longitude={empreendimento.longitude!}
               />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── SEÇÃO 6b: LOTES ASSOCIADOS ── */}
+      {empreendimento.lotesAnuncios.length > 0 && (
+        <section className="px-6 py-16" style={{ background: '#F7F2EA' }}>
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#1E3A1E] mb-1">Lotes disponíveis neste loteamento</h2>
+            <p className="text-[#1E3A1E]/50 text-sm mb-8">Anunciados por proprietários</p>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {empreendimento.lotesAnuncios.map((lote) => (
+                <div
+                  key={lote.id}
+                  className="rounded-2xl p-6 flex flex-col gap-3"
+                  style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}
+                >
+                  <div className="flex items-center gap-2 text-[#1E3A1E]/70 text-sm">
+                    <LandPlot size={16} />
+                    {fmtArea(lote.area)}
+                  </div>
+                  <p className="font-bold text-lg" style={{ color: '#E07B3A' }}>
+                    {fmtPreco(lote.preco)}
+                  </p>
+                  <Link
+                    href={`/lotes/${lote.slug}`}
+                    className="mt-2 inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all hover:opacity-90 text-white"
+                    style={{ background: '#E07B3A' }}
+                  >
+                    Ver lote
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ))}
             </div>
           </div>
         </section>

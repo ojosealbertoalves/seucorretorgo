@@ -98,3 +98,35 @@ export async function searchEmpreendimentos(filtros: FiltrosBusca): Promise<Empr
   // Relaxa preço também
   return runQuery(filtros, { useBairro: false, usePreco: false })
 }
+
+export type FiltrosLotes = {
+  bairro?: string | null
+  areaMin?: number | null
+  precoMax?: number | null
+}
+
+export async function searchLotes(filtros: FiltrosLotes) {
+  const where: Prisma.LoteAnuncioWhereInput = { ativo: true }
+
+  if (filtros.bairro) {
+    where.bairro = { contains: filtros.bairro, mode: 'insensitive' }
+  }
+  if (filtros.areaMin) {
+    where.area = { gte: filtros.areaMin }
+  }
+  if (filtros.precoMax) {
+    where.preco = { lte: filtros.precoMax }
+  }
+
+  return prisma.loteAnuncio.findMany({
+    where,
+    take: 4,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      loteamento: { select: { nome: true, slug: true } },
+      fotos: { orderBy: { ordem: 'asc' }, take: 1 },
+    },
+  })
+}
+
+export type LoteResult = Awaited<ReturnType<typeof searchLotes>>[number]

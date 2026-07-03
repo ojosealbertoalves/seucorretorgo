@@ -80,13 +80,13 @@ export default async function HomePage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-7"
               style={{ border: '1px solid #1E3A1E', color: '#E07B3A', background: 'rgba(30,58,30,0.3)' }}
             >
-              ✦ A 1ª plataforma de Goiânia especializada em terrenos
+              ✦ A 1ª plataforma de Goiânia e região especializada em terrenos
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.08] tracking-tight mb-5">
               Encontre seu terreno
               <br />
-              <span style={{ color: '#E07B3A' }}>ideal</span> em Goiânia
+              <span style={{ color: '#E07B3A' }}>ideal</span> em Goiânia e região
             </h1>
 
             <p
@@ -276,6 +276,15 @@ export default async function HomePage() {
               })}
             </div>
           )}
+
+          <p className="text-center mt-10">
+            <Link
+              href="/lotes"
+              className="text-sm text-white/40 hover:text-white/70 transition-colors"
+            >
+              Procurando um lote avulso? Veja nosso catálogo de lotes →
+            </Link>
+          </p>
         </div>
       </section>
 
@@ -356,7 +365,7 @@ export default async function HomePage() {
                         maxWidth: '88%',
                       }}
                     >
-                      Quero um lote de 300m² em condomínio fechado, no Jardim Goiás, até R$ 400 mil
+                      Quero um lote de 300m² em condomínio fechado, próximo ao Jardim Goiás, até R$ 800 mil
                     </div>
                   </div>
                   <div className="flex items-end gap-2">
@@ -600,6 +609,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-8 flex-wrap justify-center">
             {[
               { href: '/catalogo', label: 'Catálogo' },
+              { href: '/lotes', label: 'Lotes' },
               { href: '/mapa', label: 'Mapa' },
               { href: '/proprietarios', label: 'Para Proprietários' },
               { href: '/conversar', label: 'Conversar' },

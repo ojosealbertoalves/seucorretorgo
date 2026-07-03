@@ -1,4 +1,4 @@
-import { searchEmpreendimentos, type FiltrosBusca, type EmpreendimentoResult } from '@/lib/search-empreendimentos'
+import { searchEmpreendimentos, searchLotes, type FiltrosBusca, type EmpreendimentoResult, type LoteResult } from '@/lib/search-empreendimentos'
 
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
@@ -72,6 +72,30 @@ Caso contrário false.`,
   } catch {
     return { prontoParaBuscar: false }
   }
+}
+
+const LOTE_AVULSO_KEYWORDS = ['lote avulso', 'lote para comprar', 'lote de terceiro']
+
+function mencionaLoteAvulso(messages: { role: string; content: string }[]) {
+  return messages
+    .filter((m) => m.role === 'user')
+    .some((m) => {
+      const text = m.content.toLowerCase()
+      return LOTE_AVULSO_KEYWORDS.some((k) => text.includes(k))
+    })
+}
+
+function buildLotesAvulsosContextJson(lotes: LoteResult[]) {
+  return lotes.map((l) => ({
+    slug: l.slug,
+    titulo: l.titulo,
+    bairro: l.bairro,
+    cidade: l.cidade,
+    area: l.area,
+    frente: l.frente,
+    preco: fmt(l.preco),
+    loteamento: l.loteamento?.nome ?? null,
+  }))
 }
 
 function buildContextJson(empreendimentos: EmpreendimentoResult[]) {
@@ -187,10 +211,18 @@ INSTRUÇÕES TÉCNICAS — NÃO MENCIONE NA CONVERSA:
 Quando o cliente fornecer nome + email + WhatsApp voluntariamente, inclua NO FINAL da mensagem:
 [LEAD:nome=NOME_COMPLETO|email=EMAIL|whatsapp=NUMERO_SEM_ESPACOS]
 
+SOBRE LOTES AVULSOS/ASSOCIADOS:
+Além dos loteamentos das incorporadoras, também temos lotes anunciados diretamente por proprietários (avulsos ou dentro de um loteamento já cadastrado). Quando o cliente mencionar interesse em lote avulso, lote de terceiro ou lote para comprar de um proprietário, use os dados em LOTES_AVULSOS_JSON abaixo.
+Para cada um, informe: área, frente (se houver), preço, bairro e, se houver, o loteamento ao qual está associado.
+Nunca invente dados — use apenas o que estiver em LOTES_AVULSOS_JSON.
+
 EMPREENDIMENTOS DISPONÍVEIS:
 {EMPREENDIMENTOS_JSON}
 
-Se EMPREENDIMENTOS_JSON estiver vazio ou "[]", ainda não há empreendimentos compatíveis com o perfil — continue qualificando ou diga que vai verificar disponibilidade.`
+Se EMPREENDIMENTOS_JSON estiver vazio ou "[]", ainda não há empreendimentos compatíveis com o perfil — continue qualificando ou diga que vai verificar disponibilidade.
+
+LOTES_AVULSOS_JSON:
+{LOTES_AVULSOS_JSON}`
 
 export async function POST(req: Request) {
   console.log('[chat] POST /api/chat — início')
@@ -250,7 +282,22 @@ export async function POST(req: Request) {
             }
           }
 
-          const systemPrompt = SYSTEM_TEMPLATE.replace('{EMPREENDIMENTOS_JSON}', empreendimentosJson)
+          let lotesAvulsosJson = '[]'
+          if (mencionaLoteAvulso(apiMessages)) {
+            const lotes = await searchLotes({
+              bairro: filtros.bairros?.[0] ?? null,
+              areaMin: filtros.areaTerreno,
+              precoMax: filtros.precoMax,
+            })
+            if (lotes.length > 0) {
+              lotesAvulsosJson = JSON.stringify(buildLotesAvulsosContextJson(lotes))
+              console.log('[chat] lotes avulsos encontrados:', lotes.length)
+            }
+          }
+
+          const systemPrompt = SYSTEM_TEMPLATE
+            .replace('{EMPREENDIMENTOS_JSON}', empreendimentosJson)
+            .replace('{LOTES_AVULSOS_JSON}', lotesAvulsosJson)
 
           console.log('[chat] iniciando stream OpenRouter')
 

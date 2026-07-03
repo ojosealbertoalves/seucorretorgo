@@ -54,6 +54,12 @@ export default function HomeNavbar() {
             Catálogo
           </Link>
           <Link
+            href="/lotes"
+            className="text-white/60 hover:text-white text-sm transition-colors duration-200"
+          >
+            Lotes
+          </Link>
+          <Link
             href="/mapa"
             className="text-white/60 hover:text-white text-sm transition-colors duration-200"
           >
