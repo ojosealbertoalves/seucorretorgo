@@ -15,7 +15,7 @@ import {
   Tag,
   ArrowRight,
 } from 'lucide-react'
-import HomeNavbar from '@/components/home-navbar'
+import NavbarPublica from '@/components/navbar-publica'
 import MapaHero from '@/components/mapa-hero-loader'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -66,11 +66,11 @@ export default async function HomePage() {
 
   return (
     <>
-      <HomeNavbar />
+      <NavbarPublica />
 
       {/* ── SEÇÃO 1 · HERO DIVIDIDO ── */}
       <section
-        className="pt-16 flex flex-col lg:flex-row"
+        className="flex flex-col lg:flex-row"
         style={{ background: '#080F08', minHeight: '90vh' }}
       >
         {/* Lado esquerdo */}

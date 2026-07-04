@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { MapPinned, Tag, Building2, FileCheck, MessageCircle, MapPin, Shield, HardHat } from 'lucide-react'
 import { ServicoCard } from '@/components/proprietarios/servico-card'
+import NavbarPublica from '@/components/navbar-publica'
 
 export const metadata: Metadata = {
   title: 'Para Proprietários | Só Terrenos GO',
@@ -52,56 +53,11 @@ export default function ProprietariosPage() {
 
   return (
     <>
-      {/* ── NAVBAR ── */}
-      <nav
-        className="fixed top-0 inset-x-0 z-50 h-16"
-        style={{
-          background: 'rgba(15,31,15,0.95)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-        }}
-      >
-        <div className="h-full max-w-6xl mx-auto px-6 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-bold text-base tracking-tight select-none"
-          >
-            <span
-              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: '#E07B3A' }}
-            >
-              <MapPin size={14} className="text-white" />
-            </span>
-            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
-            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/catalogo" className="text-white/60 hover:text-white text-sm transition-colors duration-200">
-              Catálogo
-            </Link>
-            <Link href="/proprietarios" className="text-white text-sm font-medium">
-              Para Proprietários
-            </Link>
-            <Link href="/blog" className="text-white/60 hover:text-white text-sm transition-colors duration-200">
-              Blog
-            </Link>
-          </div>
-
-          <Link
-            href="/conversar"
-            className="inline-flex items-center gap-1.5 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
-            style={{ background: '#E07B3A' }}
-          >
-            <MessageCircle size={13} />
-            Falar com o Alberto
-          </Link>
-        </div>
-      </nav>
+      <NavbarPublica active="proprietarios" />
 
       {/* ── HERO ── */}
       <section
-        className="relative pt-36 pb-24 px-6 text-center overflow-hidden"
+        className="relative pt-20 pb-24 px-6 text-center overflow-hidden"
         style={{ background: 'linear-gradient(160deg, #0F1F0F 0%, #080F08 100%)' }}
       >
         <div

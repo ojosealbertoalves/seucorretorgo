@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { MapPin, LandPlot, Ruler, Building2 } from 'lucide-react'
+import NavbarPublica from '@/components/navbar-publica'
 
 export const metadata: Metadata = {
   title: 'Lotes disponíveis em Goiânia e região | Só Terrenos GO',
@@ -42,33 +43,7 @@ export default async function LotesPage({
 
   return (
     <div className="min-h-screen" style={{ background: '#080F08' }}>
-      {/* ── NAVBAR ── */}
-      <nav
-        className="sticky top-0 z-50 h-16 flex items-center px-6 border-b"
-        style={{ background: 'rgba(15,31,15,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
-      >
-        <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E07B3A' }}>
-              <MapPin size={14} className="text-white" />
-            </span>
-            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
-            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/catalogo" className="text-white/60 hover:text-white text-sm transition-colors">Catálogo</Link>
-            <Link href="/lotes" className="text-white text-sm font-medium">Lotes</Link>
-            <Link href="/blog" className="text-white/60 hover:text-white text-sm transition-colors">Blog</Link>
-          </div>
-          <Link
-            href="/conversar"
-            className="text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-            style={{ background: '#E07B3A' }}
-          >
-            Falar com o Alberto
-          </Link>
-        </div>
-      </nav>
+      <NavbarPublica active="lotes" />
 
       <div className="max-w-6xl mx-auto px-6 py-14">
         {/* Header */}

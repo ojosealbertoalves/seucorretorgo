@@ -4,9 +4,10 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
-import { MapPin, Tag, ChevronLeft, Mail, ArrowRight } from 'lucide-react'
+import { Tag, Mail, ArrowRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
+import NavbarPublica from '@/components/navbar-publica'
 
 function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -32,25 +33,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="min-h-screen" style={{ background: '#080F08' }}>
-      {/* Navbar */}
-      <nav
-        className="sticky top-0 z-50 h-16 flex items-center px-6 border-b"
-        style={{ background: 'rgba(15,31,15,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
-      >
-        <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E07B3A' }}>
-              <MapPin size={14} className="text-white" />
-            </span>
-            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
-            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
-          </Link>
-          <Link href="/blog" className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors">
-            <ChevronLeft size={14} />
-            Blog
-          </Link>
-        </div>
-      </nav>
+      <NavbarPublica active="blog" />
 
       <article className="max-w-3xl mx-auto px-6 py-12">
         {/* Breadcrumb */}

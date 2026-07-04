@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { MapPin, Mail, BookOpen, Tag, ArrowRight } from 'lucide-react'
+import { Mail, BookOpen, Tag, ArrowRight } from 'lucide-react'
+import NavbarPublica from '@/components/navbar-publica'
 
 function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -22,32 +23,7 @@ export default async function BlogPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#080F08' }}>
-      {/* Navbar */}
-      <nav
-        className="sticky top-0 z-50 h-16 flex items-center px-6 border-b"
-        style={{ background: 'rgba(15,31,15,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
-      >
-        <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E07B3A' }}>
-              <MapPin size={14} className="text-white" />
-            </span>
-            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
-            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link href="/catalogo" className="text-white/60 hover:text-white text-sm transition-colors">Catálogo</Link>
-            <Link href="/blog" className="text-white text-sm font-medium">Blog</Link>
-            <Link
-              href="/newsletter"
-              className="text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-              style={{ background: '#E07B3A' }}
-            >
-              Newsletter
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <NavbarPublica active="blog" ctaHref="/newsletter" ctaLabel="Newsletter" />
 
       <div className="max-w-5xl mx-auto px-6 py-16">
         {/* Header */}

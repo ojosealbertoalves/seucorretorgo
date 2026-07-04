@@ -3,25 +3,28 @@ export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 import { prisma } from '@/lib/prisma'
 import { GaleriaFotos } from '@/components/galeria-fotos'
 import MapaEmpreendimento from '@/components/mapa-empreendimento-loader'
+import NavbarPublica from '@/components/navbar-publica'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import {
   MapPin,
-  ChevronLeft,
   MessageCircle,
   Building2,
   Calendar,
   Wallet,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   BedDouble,
   Car,
   Ruler,
   LandPlot,
   ArrowRight,
+  Shield,
 } from 'lucide-react'
 
 const STATUS_MAP: Record<string, string> = {
@@ -42,6 +45,17 @@ const TIPO_NEGOCIO_LABEL: Record<string, string> = {
 }
 
 const WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5562999999999'
+
+const markdownComponents = {
+  h1: ({ children }: { children?: ReactNode }) => <h1 className="text-2xl font-bold text-[#F7F2EA] mt-6 mb-3">{children}</h1>,
+  h2: ({ children }: { children?: ReactNode }) => <h2 className="text-xl font-bold text-[#F7F2EA] mt-5 mb-2">{children}</h2>,
+  h3: ({ children }: { children?: ReactNode }) => <h3 className="text-lg font-semibold text-[#F7F2EA] mt-4 mb-2">{children}</h3>,
+  p: ({ children }: { children?: ReactNode }) => <p className="leading-relaxed mb-5" style={{ color: 'rgba(247,242,234,0.9)' }}>{children}</p>,
+  ul: ({ children }: { children?: ReactNode }) => <ul className="pl-5 mb-5 space-y-2 list-disc" style={{ color: 'rgba(247,242,234,0.9)' }}>{children}</ul>,
+  ol: ({ children }: { children?: ReactNode }) => <ol className="pl-5 mb-5 space-y-2 list-decimal" style={{ color: 'rgba(247,242,234,0.9)' }}>{children}</ol>,
+  li: ({ children }: { children?: ReactNode }) => <li className="leading-relaxed">{children}</li>,
+  strong: ({ children }: { children?: ReactNode }) => <strong className="text-[#F7F2EA] font-semibold">{children}</strong>,
+}
 
 function fmtPreco(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
@@ -90,6 +104,20 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
   const isLote = empreendimento.tipoNegocio === 'LOTE'
   const temLocalizacao = empreendimento.latitude != null && empreendimento.longitude != null
 
+  const precoExibir = isLote && empreendimento.lotePrecoMin && empreendimento.lotePrecoMin > 0
+    ? empreendimento.lotePrecoMin
+    : empreendimento.precoMin
+  const temPreco = precoExibir > 0
+
+  const loteAreaMinValido = isLote && (empreendimento.loteAreaMin ?? 0) > 0
+  const loteAreaMaxValido = isLote && (empreendimento.loteAreaMax ?? 0) > 0
+  const lotePrecoMinValido = isLote && (empreendimento.lotePrecoMin ?? 0) > 0
+  const temLotesAgregados = loteAreaMinValido || lotePrecoMinValido
+  const temLotesIndividuais = isLote && empreendimento.lotes.length > 0
+  const mostrarSecaoLotes = isLote && (temLotesAgregados || temLotesIndividuais)
+
+  const temSecaoSobre = Boolean(empreendimento.descricaoCompleta || empreendimento.destaqueIa)
+
   // Fotos com FACHADA priorizada, mantendo a ordem relativa das demais
   const fotosOrdenadas = [...empreendimento.fotos].sort((a, b) => {
     if (a.tipo === 'FACHADA' && b.tipo !== 'FACHADA') return -1
@@ -101,27 +129,13 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
     `Olá! Tenho interesse no ${empreendimento.nome} em ${empreendimento.bairro}. Pode me dar mais informações?`,
   )}`
 
+  const ctaLotesHref = `https://wa.me/${WA}?text=${encodeURIComponent(
+    `Olá! Tenho interesse nos lotes do ${empreendimento.nome} em ${empreendimento.bairro}. Quais estão disponíveis?`,
+  )}`
+
   return (
     <>
-      {/* ── NAVBAR ── */}
-      <nav
-        className="sticky top-0 z-50 h-16 flex items-center px-6 border-b"
-        style={{ background: 'rgba(15,31,15,0.92)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255,255,255,0.07)' }}
-      >
-        <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-base tracking-tight">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E07B3A' }}>
-              <MapPin size={14} className="text-white" />
-            </span>
-            <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>
-            <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
-          </Link>
-          <Link href="/catalogo" className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors">
-            <ChevronLeft size={14} />
-            Catálogo
-          </Link>
-        </div>
-      </nav>
+      <NavbarPublica active="catalogo" />
 
       {/* ── SEÇÃO 1: HERO COM GALERIA ── */}
       <section className="px-6 py-10" style={{ background: 'linear-gradient(160deg, #0F1F0F 0%, #080F08 100%)' }}>
@@ -168,194 +182,252 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
       </section>
 
       {/* ── SEÇÃO 2: INFORMAÇÕES PRINCIPAIS ── */}
-      <section className="px-6 py-16" style={{ background: '#F7F2EA' }}>
+      <section className="px-6 py-16" style={{ background: '#0F1F0F' }}>
         <div className="max-w-5xl mx-auto">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-              <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Preço</p>
-              <p className="text-[#1E3A1E] font-bold text-lg">
-                A partir de {fmtPreco(isLote && empreendimento.lotePrecoMin != null ? empreendimento.lotePrecoMin : empreendimento.precoMin)}
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Preço</p>
+              <p className="text-[#F7F2EA] font-bold text-lg">
+                {temPreco ? `A partir de ${fmtPreco(precoExibir)}` : 'Consulte valores'}
               </p>
             </div>
 
-            {isLote && (empreendimento.loteAreaMin != null || empreendimento.loteAreaMax != null) && (
-              <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-                <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Área dos lotes</p>
-                <p className="text-[#1E3A1E] font-bold text-lg">
-                  {empreendimento.loteAreaMin != null && `Lotes a partir de ${fmtArea(empreendimento.loteAreaMin)}`}
-                  {empreendimento.loteAreaMin != null && empreendimento.loteAreaMax != null && ' · '}
-                  {empreendimento.loteAreaMax != null && `Até ${fmtArea(empreendimento.loteAreaMax)}`}
+            {(loteAreaMinValido || loteAreaMaxValido) && (
+              <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Área dos lotes</p>
+                <p className="text-[#F7F2EA] font-bold text-lg">
+                  {loteAreaMinValido && `Lotes a partir de ${fmtArea(empreendimento.loteAreaMin!)}`}
+                  {loteAreaMinValido && loteAreaMaxValido && ' · '}
+                  {loteAreaMaxValido && `Até ${fmtArea(empreendimento.loteAreaMax!)}`}
                 </p>
               </div>
             )}
 
-            <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-              <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Tipo</p>
-              <p className="text-[#1E3A1E] font-bold text-lg">{TIPO_NEGOCIO_LABEL[empreendimento.tipoNegocio] ?? empreendimento.tipoNegocio}</p>
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Tipo</p>
+              <p className="text-[#F7F2EA] font-bold text-lg">{TIPO_NEGOCIO_LABEL[empreendimento.tipoNegocio] ?? empreendimento.tipoNegocio}</p>
             </div>
 
-            <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-              <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Status da obra</p>
-              <p className="text-[#1E3A1E] font-bold text-lg">{STATUS_MAP[empreendimento.status] ?? empreendimento.status}</p>
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Status da obra</p>
+              <p className="text-[#F7F2EA] font-bold text-lg">{STATUS_MAP[empreendimento.status] ?? empreendimento.status}</p>
             </div>
 
             {empreendimento.entregaPrevista && (
-              <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-                <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Entrega prevista</p>
-                <p className="text-[#1E3A1E] font-bold text-lg flex items-center gap-1.5">
+              <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Entrega prevista</p>
+                <p className="text-[#F7F2EA] font-bold text-lg flex items-center gap-1.5">
                   <Calendar size={16} />
                   {empreendimento.entregaPrevista}
                 </p>
               </div>
             )}
 
-            <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-              <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">FGTS</p>
-              <p className="text-[#1E3A1E] font-bold text-lg flex items-center gap-1.5">
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">FGTS</p>
+              <p className="text-[#F7F2EA] font-bold text-lg flex items-center gap-1.5">
                 {empreendimento.aceitaFgts ? (
                   <>
                     <CheckCircle size={16} style={{ color: '#10b981' }} /> Aceita
                   </>
                 ) : (
                   <>
-                    <XCircle size={16} style={{ color: '#94a3b8' }} /> Não aceita
+                    <XCircle size={16} className="text-white/30" /> Não aceita
                   </>
                 )}
               </p>
             </div>
 
-            <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-              <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Financiamento</p>
-              <p className="text-[#1E3A1E] font-bold text-lg flex items-center gap-1.5">
+            <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Financiamento</p>
+              <p className="text-[#F7F2EA] font-bold text-lg flex items-center gap-1.5">
                 {empreendimento.aceitaFinanciamento ? (
                   <>
                     <CheckCircle size={16} style={{ color: '#10b981' }} /> Aceita
                   </>
                 ) : (
                   <>
-                    <XCircle size={16} style={{ color: '#94a3b8' }} /> Não aceita
+                    <XCircle size={16} className="text-white/30" /> Não aceita
                   </>
                 )}
               </p>
             </div>
 
             {empreendimento.programaMcmv && (
-              <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
-                <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Programa MCMV</p>
-                <p className="text-[#1E3A1E] font-bold text-lg flex items-center gap-1.5">
+              <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-1">Programa MCMV</p>
+                <p className="text-[#F7F2EA] font-bold text-lg flex items-center gap-1.5">
                   <CheckCircle size={16} style={{ color: '#10b981' }} /> Participante
                 </p>
               </div>
             )}
           </div>
-
-          {/* ── SEÇÃO 3: DESCRIÇÃO ── */}
-          <div className="mt-12">
-            {empreendimento.descricaoCompleta ? (
-              <div className="prose-blog">
-                <ReactMarkdown
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    h1: ({ children }) => <h1 className="text-2xl font-bold text-[#1E3A1E] mt-6 mb-3">{children}</h1>,
-                    h2: ({ children }) => <h2 className="text-xl font-bold text-[#1E3A1E] mt-5 mb-2">{children}</h2>,
-                    h3: ({ children }) => <h3 className="text-lg font-semibold text-[#1E3A1E] mt-4 mb-2">{children}</h3>,
-                    p: ({ children }) => <p className="text-[#1E3A1E]/70 leading-relaxed mb-4">{children}</p>,
-                    ul: ({ children }) => <ul className="text-[#1E3A1E]/70 pl-5 mb-4 space-y-1.5 list-disc">{children}</ul>,
-                    ol: ({ children }) => <ol className="text-[#1E3A1E]/70 pl-5 mb-4 space-y-1.5 list-decimal">{children}</ol>,
-                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                    strong: ({ children }) => <strong className="text-[#1E3A1E] font-semibold">{children}</strong>,
-                  }}
-                >
-                  {empreendimento.descricaoCompleta}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <p className="text-[#1E3A1E]/70 leading-relaxed">{empreendimento.destaqueIa}</p>
-            )}
-          </div>
         </div>
       </section>
 
-      {/* ── SEÇÃO 4: TIPOLOGIAS / LOTES DISPONÍVEIS ── */}
-      {(isLote ? empreendimento.lotes.length > 0 : empreendimento.tipologias.length > 0) && (
+      {/* ── SEÇÃO 3: SOBRE O EMPREENDIMENTO ── */}
+      {temSecaoSobre && (
         <section className="px-6 py-16" style={{ background: '#080F08' }}>
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-8">
-              {isLote ? 'Lotes disponíveis' : 'Opções disponíveis'}
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-8">Sobre o empreendimento</h2>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isLote
-                ? empreendimento.lotes.map((lote) => (
-                    <div
-                      key={lote.id}
-                      className="rounded-2xl p-6 flex flex-col gap-3"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
-                      <div className="flex items-center gap-2 text-white/70 text-sm">
-                        <LandPlot size={16} />
-                        {fmtArea(lote.areaTerreno)}
-                      </div>
-                      {lote.frente != null && (
-                        <div className="flex items-center gap-2 text-white/70 text-sm">
-                          <Ruler size={16} />
-                          {fmtArea(lote.frente)} de frente
-                        </div>
-                      )}
-                      <p className="font-bold text-lg mt-2" style={{ color: '#E07B3A' }}>
-                        {fmtPreco(lote.preco)}
-                      </p>
-                    </div>
-                  ))
-                : empreendimento.tipologias.map((tipologia) => (
-                    <div
-                      key={tipologia.id}
-                      className="rounded-2xl p-6 flex flex-col gap-3"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
-                      <div className="flex items-center gap-2 text-white/70 text-sm">
-                        <BedDouble size={16} />
-                        {tipologia.quartos} quarto{tipologia.quartos !== 1 ? 's' : ''}
-                      </div>
-                      <div className="flex items-center gap-2 text-white/70 text-sm">
-                        <Ruler size={16} />
-                        {fmtArea(tipologia.areaPrivativa)}
-                      </div>
-                      <div className="flex items-center gap-2 text-white/70 text-sm">
-                        <Car size={16} />
-                        {tipologia.vagas} vaga{tipologia.vagas !== 1 ? 's' : ''}
-                      </div>
-                      <p className="font-bold text-lg mt-2" style={{ color: '#E07B3A' }}>
-                        {fmtPreco(tipologia.preco)}
-                      </p>
-                    </div>
-                  ))}
-            </div>
+            {empreendimento.destaqueIa && (
+              <p className="text-xl md:text-2xl font-bold mb-6 leading-snug" style={{ color: '#E07B3A' }}>
+                &ldquo;{empreendimento.destaqueIa}&rdquo;
+              </p>
+            )}
+
+            {empreendimento.descricaoCompleta && (
+              <div className="prose-blog">
+                <ReactMarkdown rehypePlugins={[rehypeRaw]} components={markdownComponents}>
+                  {empreendimento.descricaoCompleta}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         </section>
       )}
 
-      {/* ── SEÇÃO 5: DIFERENCIAIS ── */}
+      {/* ── SEÇÃO 4: DIFERENCIAIS ── */}
       {empreendimento.diferenciais.length > 0 && (
-        <section className="px-6 py-16" style={{ background: '#F7F2EA' }}>
+        <section className="px-6 py-16" style={{ background: '#0F1F0F' }}>
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#1E3A1E] mb-8">Diferenciais</h2>
-            <div className="flex flex-wrap gap-2">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-8">Diferenciais</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {empreendimento.diferenciais.map((d) => (
-                <span
+                <div
                   key={d}
-                  className="text-sm font-medium px-4 py-2 rounded-full"
-                  style={{ background: 'rgba(224,123,58,0.1)', border: '1px solid rgba(224,123,58,0.25)', color: '#1E3A1E' }}
+                  className="flex items-center gap-2.5 text-sm font-medium px-4 py-3 rounded-xl"
+                  style={{ background: '#1E3A1E', border: '1px solid rgba(224,123,58,0.3)', color: '#F7F2EA' }}
                 >
+                  <CheckCircle2 size={18} style={{ color: '#E07B3A' }} className="shrink-0" />
                   {d}
-                </span>
+                </div>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ── SEÇÃO 6: LOCALIZAÇÃO ── */}
+      {/* ── SEÇÃO 5: INFRAESTRUTURA ── */}
+      {empreendimento.infraestrutura && (
+        <section className="px-6 py-16" style={{ background: '#080F08' }}>
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-8">Infraestrutura</h2>
+            <div className="prose-blog">
+              <ReactMarkdown rehypePlugins={[rehypeRaw]} components={markdownComponents}>
+                {empreendimento.infraestrutura}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── SEÇÃO 6: LOTES DISPONÍVEIS / OPÇÕES DISPONÍVEIS ── */}
+      {mostrarSecaoLotes && (
+        <section className="px-6 py-16" style={{ background: '#0F1F0F' }}>
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-8">Lotes disponíveis</h2>
+
+            {temLotesAgregados ? (
+              <div
+                className="rounded-2xl p-8 flex flex-col gap-4"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                {loteAreaMinValido && (
+                  <div className="flex items-center gap-2 text-white text-lg font-semibold">
+                    <LandPlot size={18} style={{ color: '#E07B3A' }} />
+                    Lotes a partir de {fmtArea(empreendimento.loteAreaMin!)}
+                  </div>
+                )}
+                {loteAreaMaxValido && (
+                  <div className="flex items-center gap-2 text-white/70 text-sm">
+                    <Ruler size={16} />
+                    Até {fmtArea(empreendimento.loteAreaMax!)}
+                  </div>
+                )}
+                {lotePrecoMinValido && (
+                  <p className="font-bold text-2xl" style={{ color: '#E07B3A' }}>
+                    A partir de {fmtPreco(empreendimento.lotePrecoMin!)}
+                  </p>
+                )}
+                <a
+                  href={ctaLotesHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex w-fit items-center gap-2 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all hover:opacity-90"
+                  style={{ background: '#E07B3A' }}
+                >
+                  <MessageCircle size={16} />
+                  Consultar disponibilidade
+                </a>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {empreendimento.lotes.map((lote) => (
+                  <div
+                    key={lote.id}
+                    className="rounded-2xl p-6 flex flex-col gap-3"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    {lote.areaTerreno > 0 && (
+                      <div className="flex items-center gap-2 text-white/70 text-sm">
+                        <LandPlot size={16} />
+                        {fmtArea(lote.areaTerreno)}
+                      </div>
+                    )}
+                    {lote.frente != null && lote.frente > 0 && (
+                      <div className="flex items-center gap-2 text-white/70 text-sm">
+                        <Ruler size={16} />
+                        {fmtArea(lote.frente)} de frente
+                      </div>
+                    )}
+                    <p className="font-bold text-lg mt-2" style={{ color: '#E07B3A' }}>
+                      {lote.preco > 0 ? fmtPreco(lote.preco) : 'Consulte valores'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── SEÇÃO 7: OPÇÕES DISPONÍVEIS (IMÓVEIS) ── */}
+      {!isLote && empreendimento.tipologias.length > 0 && (
+        <section className="px-6 py-16" style={{ background: '#0F1F0F' }}>
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-8">Opções disponíveis</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {empreendimento.tipologias.map((tipologia) => (
+                <div
+                  key={tipologia.id}
+                  className="rounded-2xl p-6 flex flex-col gap-3"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <div className="flex items-center gap-2 text-white/70 text-sm">
+                    <BedDouble size={16} />
+                    {tipologia.quartos} quarto{tipologia.quartos !== 1 ? 's' : ''}
+                  </div>
+                  <div className="flex items-center gap-2 text-white/70 text-sm">
+                    <Ruler size={16} />
+                    {fmtArea(tipologia.areaPrivativa)}
+                  </div>
+                  <div className="flex items-center gap-2 text-white/70 text-sm">
+                    <Car size={16} />
+                    {tipologia.vagas} vaga{tipologia.vagas !== 1 ? 's' : ''}
+                  </div>
+                  <p className="font-bold text-lg mt-2" style={{ color: '#E07B3A' }}>
+                    {tipologia.preco > 0 ? fmtPreco(tipologia.preco) : 'Consulte valores'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── SEÇÃO 8: LOCALIZAÇÃO ── */}
       {temLocalizacao && (
         <section className="px-6 py-16" style={{ background: '#080F08' }}>
           <div className="max-w-5xl mx-auto">
@@ -372,26 +444,26 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
         </section>
       )}
 
-      {/* ── SEÇÃO 6b: LOTES ASSOCIADOS ── */}
+      {/* ── SEÇÃO 8b: LOTES ASSOCIADOS ── */}
       {empreendimento.lotesAnuncios.length > 0 && (
-        <section className="px-6 py-16" style={{ background: '#F7F2EA' }}>
+        <section className="px-6 py-16" style={{ background: '#0F1F0F' }}>
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#1E3A1E] mb-1">Lotes disponíveis neste loteamento</h2>
-            <p className="text-[#1E3A1E]/50 text-sm mb-8">Anunciados por proprietários</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F7F2EA] mb-1">Lotes disponíveis neste loteamento</h2>
+            <p className="text-white/40 text-sm mb-8">Anunciados por proprietários</p>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {empreendimento.lotesAnuncios.map((lote) => (
                 <div
                   key={lote.id}
                   className="rounded-2xl p-6 flex flex-col gap-3"
-                  style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  <div className="flex items-center gap-2 text-[#1E3A1E]/70 text-sm">
+                  <div className="flex items-center gap-2 text-white/70 text-sm">
                     <LandPlot size={16} />
                     {fmtArea(lote.area)}
                   </div>
                   <p className="font-bold text-lg" style={{ color: '#E07B3A' }}>
-                    {fmtPreco(lote.preco)}
+                    {lote.preco > 0 ? fmtPreco(lote.preco) : 'Consulte valores'}
                   </p>
                   <Link
                     href={`/lotes/${lote.slug}`}
@@ -408,7 +480,7 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
         </section>
       )}
 
-      {/* ── SEÇÃO 7: CTA FINAL ── */}
+      {/* ── SEÇÃO 9: CTA FINAL ── */}
       <section
         className="py-24 px-6 text-center relative overflow-hidden"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, #0F1F0F 0%, #080F08 65%)' }}
@@ -448,6 +520,54 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
           </div>
         </div>
       </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{ background: '#080F08' }} className="py-10 px-6 border-t border-white/5">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+              style={{ background: '#E07B3A' }}
+            >
+              <MapPin size={12} className="text-white" />
+            </span>
+            <div>
+              <p className="text-white/80 font-semibold text-sm leading-tight">
+                <span style={{ fontWeight: 700, color: 'white' }}>Só Terrenos</span>{' '}
+                <span style={{ fontWeight: 700, color: '#E07B3A' }}>GO</span>
+              </p>
+              <p className="text-white/25 text-xs">© 2025 · CRECI-GO</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-8 flex-wrap justify-center">
+            {[
+              { href: '/catalogo', label: 'Catálogo' },
+              { href: '/lotes', label: 'Lotes' },
+              { href: '/mapa', label: 'Mapa' },
+              { href: '/proprietarios', label: 'Para Proprietários' },
+              { href: '/conversar', label: 'Conversar' },
+              { href: '/blog', label: 'Blog' },
+              { href: '/newsletter', label: 'Newsletter' },
+              { href: '/admin/login', label: 'Admin' },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="relative text-white/35 hover:text-white/70 text-sm transition-colors duration-200 pb-0.5 group"
+              >
+                {label}
+                <span className="absolute bottom-0 left-0 w-0 h-px bg-white/40 transition-all duration-200 group-hover:w-full" />
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 text-white/25 text-xs">
+            <Shield size={11} />
+            Dados protegidos · LGPD
+          </div>
+        </div>
+      </footer>
     </>
   )
 }
