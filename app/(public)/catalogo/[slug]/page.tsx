@@ -74,6 +74,8 @@ async function getEmpreendimento(slug: string) {
       tipologias: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
       lotes: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
       lotesAnuncios: { where: { ativo: true }, orderBy: { createdAt: 'desc' } },
+      bairro: { select: { nome: true } },
+      cidade: { select: { nome: true } },
     },
   })
 }
@@ -84,13 +86,26 @@ export async function generateMetadata(
   const { slug } = await params
   const empreendimento = await prisma.empreendimento.findUnique({
     where: { slug },
-    select: { nome: true, bairro: true, cidade: true, destaqueIa: true, ativo: true, fotos: { orderBy: { ordem: 'asc' }, take: 1, select: { url: true } } },
+    select: {
+      nome: true,
+      destaqueIa: true,
+      ativo: true,
+      bairroTexto: true,
+      cidadeTexto: true,
+      bairro: { select: { nome: true } },
+      cidade: { select: { nome: true } },
+      fotos: { orderBy: { ordem: 'asc' }, take: 1, select: { url: true } },
+    },
   })
   if (!empreendimento || !empreendimento.ativo) return { title: 'Empreendimento não encontrado' }
 
+  const bairroNome = empreendimento.bairro?.nome ?? empreendimento.bairroTexto
+  const cidadeNome = empreendimento.cidade?.nome ?? empreendimento.cidadeTexto
+  const local = [bairroNome, cidadeNome].filter(Boolean).join(', ')
+
   return {
     title: `${empreendimento.nome} | Só Terrenos GO`,
-    description: empreendimento.destaqueIa || `${empreendimento.nome} em ${empreendimento.bairro}, ${empreendimento.cidade}.`,
+    description: empreendimento.destaqueIa || (local ? `${empreendimento.nome} em ${local}.` : empreendimento.nome),
     openGraph: empreendimento.fotos[0] ? { images: [empreendimento.fotos[0].url] } : undefined,
   }
 }
@@ -118,6 +133,10 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
 
   const temSecaoSobre = Boolean(empreendimento.descricaoCompleta || empreendimento.destaqueIa)
 
+  const bairroNome = empreendimento.bairro?.nome ?? empreendimento.bairroTexto
+  const cidadeNome = empreendimento.cidade?.nome ?? empreendimento.cidadeTexto
+  const localizacaoLabel = [bairroNome, cidadeNome].filter(Boolean).join(' · ')
+
   // Fotos com FACHADA priorizada, mantendo a ordem relativa das demais
   const fotosOrdenadas = [...empreendimento.fotos].sort((a, b) => {
     if (a.tipo === 'FACHADA' && b.tipo !== 'FACHADA') return -1
@@ -126,11 +145,15 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
   })
 
   const ctaHref = `https://wa.me/${WA}?text=${encodeURIComponent(
-    `Olá! Tenho interesse no ${empreendimento.nome} em ${empreendimento.bairro}. Pode me dar mais informações?`,
+    bairroNome
+      ? `Olá! Tenho interesse no ${empreendimento.nome} em ${bairroNome}. Pode me dar mais informações?`
+      : `Olá! Tenho interesse no ${empreendimento.nome}. Pode me dar mais informações?`,
   )}`
 
   const ctaLotesHref = `https://wa.me/${WA}?text=${encodeURIComponent(
-    `Olá! Tenho interesse nos lotes do ${empreendimento.nome} em ${empreendimento.bairro}. Quais estão disponíveis?`,
+    bairroNome
+      ? `Olá! Tenho interesse nos lotes do ${empreendimento.nome} em ${bairroNome}. Quais estão disponíveis?`
+      : `Olá! Tenho interesse nos lotes do ${empreendimento.nome}. Quais estão disponíveis?`,
   )}`
 
   return (
@@ -154,10 +177,12 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
               {empreendimento.nome}
             </h1>
 
-            <div className="flex items-center gap-2 text-white/50 text-sm">
-              <MapPin size={14} />
-              {empreendimento.bairro} · {empreendimento.cidade}
-            </div>
+            {localizacaoLabel && (
+              <div className="flex items-center gap-2 text-white/50 text-sm">
+                <MapPin size={14} />
+                {localizacaoLabel}
+              </div>
+            )}
 
             <div className="flex items-center gap-2 mt-1">
               {empreendimento.incorporadora.logo ? (
@@ -435,7 +460,7 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
             <div className="w-full h-96 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
               <MapaEmpreendimento
                 nome={empreendimento.nome}
-                bairro={empreendimento.bairro}
+                bairro={bairroNome ?? ''}
                 latitude={empreendimento.latitude!}
                 longitude={empreendimento.longitude!}
               />

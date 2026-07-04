@@ -21,8 +21,10 @@ export default async function MapaPage() {
     select: {
       slug: true,
       nome: true,
-      bairro: true,
-      cidade: true,
+      bairroTexto: true,
+      cidadeTexto: true,
+      bairro: { select: { nome: true } },
+      cidade: { select: { nome: true } },
       precoMin: true,
       lotePrecoMin: true,
       status: true,
@@ -36,8 +38,8 @@ export default async function MapaPage() {
   const pins = empreendimentos.map((e) => ({
     slug: e.slug,
     nome: e.nome,
-    bairro: e.bairro,
-    cidade: e.cidade,
+    bairro: e.bairro?.nome ?? e.bairroTexto ?? null,
+    cidade: e.cidade?.nome ?? e.cidadeTexto ?? null,
     precoMin: e.precoMin,
     lotePrecoMin: e.lotePrecoMin,
     status: e.status,

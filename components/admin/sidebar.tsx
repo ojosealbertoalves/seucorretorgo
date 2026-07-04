@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, Building2, Landmark, Users, LogOut, Sparkles, BookOpen, Mail, LandPlot } from 'lucide-react'
+import { LayoutDashboard, Building2, Landmark, Users, LogOut, Sparkles, BookOpen, Mail, LandPlot, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/empreendimentos', label: 'Empreendimentos', icon: Building2, exact: false },
   { href: '/admin/lotes', label: 'Lotes', icon: LandPlot, exact: false },
   { href: '/admin/incorporadoras', label: 'Incorporadoras', icon: Landmark, exact: false },
+  { href: '/admin/cidades', label: 'Cidades e Bairros', icon: MapPin, exact: false },
   { href: '/admin/leads', label: 'Leads', icon: Users, exact: false },
   { href: '/admin/blog', label: 'Blog', icon: BookOpen, exact: false },
   { href: '/admin/newsletter', label: 'Newsletter', icon: Mail, exact: false },

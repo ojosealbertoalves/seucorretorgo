@@ -45,7 +45,8 @@ async function runQuery(
 
   if (opts.useBairro && filtros.bairrosInteresse && filtros.bairrosInteresse.length > 0) {
     where.OR = [
-      { bairro: { in: filtros.bairrosInteresse } },
+      { bairro: { is: { nome: { in: filtros.bairrosInteresse } } } },
+      { bairroTexto: { in: filtros.bairrosInteresse } },
       { bairrosProximos: { hasSome: filtros.bairrosInteresse } },
     ]
   }
@@ -70,11 +71,15 @@ async function runQuery(
       tipologias: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
       lotes: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
       fotos: { orderBy: { ordem: 'asc' }, take: 10 },
+      bairro: { select: { nome: true } },
+      cidade: { select: { nome: true } },
     },
   })
 
   return rows.map((e) => ({
     ...e,
+    bairro: e.bairro?.nome ?? e.bairroTexto ?? '',
+    cidade: e.cidade?.nome ?? e.cidadeTexto ?? '',
     fotos: [...e.fotos]
       .sort(
         (a, b) =>

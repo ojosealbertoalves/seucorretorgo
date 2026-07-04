@@ -9,7 +9,7 @@ import { ArrowLeft, FileText, Image, Upload, Loader2, CheckCircle2, AlertCircle 
 import { EmpreendimentoForm, type FormPreset } from '@/components/admin/empreendimento-form'
 import { cn } from '@/lib/utils'
 
-type ExtractedData = FormPreset & { incorporadora?: string }
+type ExtractedData = Omit<FormPreset, 'cidadeId' | 'bairroId'> & { incorporadora?: string; bairro?: string; cidade?: string }
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -87,7 +87,6 @@ export default function ImportarEmpreendimentoPage() {
     return {
       nome: data.nome,
       construtora: data.construtora,
-      bairro: data.bairro,
       endereco: data.endereco,
       status: data.status ?? 'LANCAMENTO',
       entregaPrevista: data.entregaPrevista,
@@ -243,6 +242,8 @@ export default function ImportarEmpreendimentoPage() {
       <EmpreendimentoForm
         preset={buildPreset(extracted)}
         incorporadoraHint={extracted.incorporadora}
+        cidadeHint={extracted.cidade}
+        bairroHint={extracted.bairro}
       />
     </div>
   )

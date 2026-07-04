@@ -43,7 +43,9 @@ export default async function EmpreendimentosPage({
     select: {
       id: true,
       nome: true,
-      bairro: true,
+      bairroTexto: true,
+      bairro: { select: { nome: true } },
+      cidade: { select: { nome: true } },
       status: true,
       precoMin: true,
       precoMax: true,
@@ -94,7 +96,7 @@ export default async function EmpreendimentosPage({
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Incorporadora</TableHead>
-              <TableHead>Bairro</TableHead>
+              <TableHead>Bairro / Cidade</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Preço</TableHead>
@@ -130,7 +132,9 @@ export default async function EmpreendimentosPage({
                       <span className="text-sm text-muted-foreground">{e.incorporadora.nome}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{e.bairro}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {[e.bairro?.nome ?? e.bairroTexto, e.cidade?.nome].filter(Boolean).join(' · ') || '—'}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={e.tipoNegocio === 'LOTE' ? 'outline' : 'secondary'}>
                       {TIPO_LABEL[e.tipoNegocio] ?? e.tipoNegocio}

@@ -26,6 +26,28 @@ enum TipoFoto {
   OUTRO
 }
 
+model Cidade {
+  id              String           @id @default(cuid())
+  nome            String           @unique
+  estado          String           @default("GO")
+  ativo           Boolean          @default(true)
+  bairros         Bairro[]
+  empreendimentos Empreendimento[]
+  createdAt       DateTime         @default(now())
+}
+
+model Bairro {
+  id              String           @id @default(cuid())
+  nome            String
+  cidadeId        String
+  cidade          Cidade           @relation(fields: [cidadeId], references: [id])
+  ativo           Boolean          @default(true)
+  empreendimentos Empreendimento[]
+  createdAt       DateTime         @default(now())
+
+  @@unique([nome, cidadeId])
+}
+
 model Incorporadora {
   id              String           @id @default(cuid())
   nome            String           @unique
@@ -49,11 +71,15 @@ model Empreendimento {
   construtora         String?
   slug                String        @unique
   ativo               Boolean       @default(false)
-  bairro              String
+  bairroTexto         String?
   bairrosProximos     String[]
   endereco            String?
-  cidade              String        @default("Goiânia")
+  cidadeTexto         String?
   estado              String        @default("GO")
+  cidadeId            String?
+  cidade              Cidade?       @relation(fields: [cidadeId], references: [id])
+  bairroId            String?
+  bairro              Bairro?       @relation(fields: [bairroId], references: [id])
   latitude            Float?
   longitude           Float?
   precoMin            Float

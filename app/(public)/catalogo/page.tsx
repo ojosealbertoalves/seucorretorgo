@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
-import { Prisma, StatusObra } from '@prisma/client'
+import type { Prisma, StatusObra, TipoNegocio } from '@prisma/client'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import NavbarPublica from '@/components/navbar-publica'
+import { FiltrosCatalogo } from '@/components/catalogo/filtros-catalogo'
 import { MapPin, Shield } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -13,9 +14,8 @@ const STATUS_LABEL: Record<string, string> = {
   PRONTO: 'Pronto',
 }
 
-const TIPO_PARAM_TO_NEGOCIO: Record<string, 'IMOVEL' | 'LOTE'> = {
-  IMOVEL: 'IMOVEL',
-  LOTE: 'LOTE',
+function parseParam(value: string | undefined): string[] {
+  return value ? value.split(',').filter(Boolean) : []
 }
 
 function fmtPreco(v: number) {
@@ -33,8 +33,8 @@ type CardItem = {
   badge: string
   badgeColor: string
   nome: string
-  bairro: string
-  cidade: string
+  bairro: string | null
+  cidade: string | null
   area: number | null
   preco: number | null
   createdAt: Date
@@ -43,43 +43,63 @@ type CardItem = {
 export default async function CatalogoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string; incorporadora?: string; status?: string; q?: string }>
+  searchParams: Promise<{ tipo?: string; incorporadora?: string; cidade?: string; bairro?: string; status?: string }>
 }) {
-  const { tipo = '', incorporadora = '', status = '', q = '' } = await searchParams
+  const sp = await searchParams
+  const tipo = parseParam(sp.tipo)
+  const incorporadora = parseParam(sp.incorporadora)
+  const cidade = parseParam(sp.cidade)
+  const bairro = parseParam(sp.bairro)
+  const status = parseParam(sp.status)
 
-  const incorporadoras = await prisma.incorporadora.findMany({
-    where: { ativo: true },
-    orderBy: { nome: 'asc' },
-    select: { id: true, nome: true },
-  })
+  const [incorporadoras, cidadesComEmpreendimentos, bairrosComEmpreendimentos] = await Promise.all([
+    prisma.incorporadora.findMany({
+      where: { ativo: true },
+      orderBy: { nome: 'asc' },
+      select: { id: true, nome: true },
+    }),
+    prisma.cidade.findMany({
+      where: { empreendimentos: { some: { ativo: true } } },
+      orderBy: { nome: 'asc' },
+      select: { id: true, nome: true },
+    }),
+    prisma.bairro.findMany({
+      where: { empreendimentos: { some: { ativo: true } } },
+      orderBy: { nome: 'asc' },
+      select: { id: true, nome: true, cidadeId: true },
+    }),
+  ])
 
-  const buscaLocal: Prisma.StringFilter = { contains: q, mode: 'insensitive' }
+  const tipoNegocioValues = tipo.filter((t): t is TipoNegocio => t === 'LOTE' || t === 'IMOVEL')
 
   const empreendimentoWhere: Prisma.EmpreendimentoWhereInput = {
     ativo: true,
-    ...(TIPO_PARAM_TO_NEGOCIO[tipo] ? { tipoNegocio: TIPO_PARAM_TO_NEGOCIO[tipo] } : {}),
-    ...(incorporadora ? { incorporadoraId: incorporadora } : {}),
-    ...(status ? { status: status as StatusObra } : {}),
-    ...(q ? { OR: [{ bairro: buscaLocal }, { cidade: buscaLocal }] } : {}),
+    ...(tipoNegocioValues.length > 0 ? { tipoNegocio: { in: tipoNegocioValues } } : {}),
+    ...(incorporadora.length > 0 ? { incorporadoraId: { in: incorporadora } } : {}),
+    ...(cidade.length > 0 ? { cidadeId: { in: cidade } } : {}),
+    ...(bairro.length > 0 ? { bairroId: { in: bairro } } : {}),
+    ...(status.length > 0 ? { status: { in: status as StatusObra[] } } : {}),
   }
 
-  const incluirEmpreendimentos = tipo !== 'AVULSO'
-  const incluirAvulsos = tipo === 'AVULSO' || (tipo === '' && !incorporadora && !status)
+  const outrosFiltrosAtivos = incorporadora.length > 0 || cidade.length > 0 || bairro.length > 0 || status.length > 0
+  const incluirEmpreendimentos = tipo.length === 0 || tipoNegocioValues.length > 0
+  const incluirAvulsos = tipo.includes('AVULSO') || (tipo.length === 0 && !outrosFiltrosAtivos)
 
   const [empreendimentos, avulsos] = await Promise.all([
     incluirEmpreendimentos
       ? prisma.empreendimento.findMany({
           where: empreendimentoWhere,
           orderBy: { createdAt: 'desc' },
-          include: { fotos: { where: { tipo: 'FACHADA' }, orderBy: { ordem: 'asc' }, take: 1 } },
+          include: {
+            fotos: { where: { tipo: 'FACHADA' }, orderBy: { ordem: 'asc' }, take: 1 },
+            bairro: { select: { nome: true } },
+            cidade: { select: { nome: true } },
+          },
         })
       : Promise.resolve([]),
     incluirAvulsos
       ? prisma.loteAnuncio.findMany({
-          where: {
-            ativo: true,
-            ...(q ? { OR: [{ bairro: buscaLocal }, { cidade: buscaLocal }] } : {}),
-          },
+          where: { ativo: true },
           orderBy: { createdAt: 'desc' },
           include: { fotos: { orderBy: { ordem: 'asc' }, take: 1 } },
         })
@@ -97,8 +117,8 @@ export default async function CatalogoPage({
         badge: isLote ? 'Loteamento' : (STATUS_LABEL[e.status] ?? e.status),
         badgeColor: isLote ? '#1E3A1E' : '#E07B3A',
         nome: e.nome,
-        bairro: e.bairro,
-        cidade: e.cidade,
+        bairro: e.bairro?.nome ?? e.bairroTexto ?? null,
+        cidade: e.cidade?.nome ?? e.cidadeTexto ?? null,
         area: isLote && e.loteAreaMin && e.loteAreaMin > 0 ? e.loteAreaMin : null,
         preco: preco && preco > 0 ? preco : null,
         createdAt: e.createdAt,
@@ -119,15 +139,6 @@ export default async function CatalogoPage({
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
-  const temFiltroAtivo = Boolean(tipo || incorporadora || status || q)
-
-  const TIPO_OPTIONS = [
-    { value: '', label: 'Todos' },
-    { value: 'LOTE', label: 'Loteamentos' },
-    { value: 'IMOVEL', label: 'Imóveis' },
-    { value: 'AVULSO', label: 'Lotes avulsos' },
-  ] as const
-
   return (
     <div className="min-h-screen" style={{ background: '#080F08' }}>
       <NavbarPublica active="catalogo" />
@@ -135,78 +146,11 @@ export default async function CatalogoPage({
       <main className="max-w-6xl mx-auto px-6 py-14">
         <h1 className="text-3xl md:text-4xl font-black text-white mb-8">Catálogo de Empreendimentos</h1>
 
-        <form method="get" className="mb-10 space-y-4">
-          {/* Linha 1 — tipo */}
-          <div className="flex flex-wrap gap-2">
-            {TIPO_OPTIONS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="submit"
-                name="tipo"
-                value={value}
-                className="text-sm font-medium px-4 py-2 rounded-xl transition-all"
-                style={
-                  tipo === value
-                    ? { background: '#E07B3A', color: 'white' }
-                    : { background: '#0F1F0F', border: '1px solid #1E3A1E', color: 'rgba(247,242,234,0.7)' }
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Linha 2 — filtros adicionais */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <select
-              name="incorporadora"
-              defaultValue={incorporadora}
-              className="w-full rounded-lg px-3 py-2.5 text-sm text-white outline-none"
-              style={{ background: '#0F1F0F', border: '1px solid #1E3A1E' }}
-            >
-              <option value="">Todas as incorporadoras</option>
-              {incorporadoras.map((i) => (
-                <option key={i.id} value={i.id}>{i.nome}</option>
-              ))}
-            </select>
-
-            <select
-              name="status"
-              defaultValue={status}
-              className="w-full rounded-lg px-3 py-2.5 text-sm text-white outline-none"
-              style={{ background: '#0F1F0F', border: '1px solid #1E3A1E' }}
-            >
-              <option value="">Todos os status</option>
-              <option value="LANCAMENTO">Lançamento</option>
-              <option value="EM_OBRAS">Em obras</option>
-              <option value="PRONTO">Pronto</option>
-            </select>
-
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="Bairro ou cidade"
-              className="w-full rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none"
-              style={{ background: '#0F1F0F', border: '1px solid #1E3A1E' }}
-            />
-
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                className="text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90"
-                style={{ background: '#E07B3A' }}
-              >
-                Filtrar
-              </button>
-              {temFiltroAtivo && (
-                <Link href="/catalogo" className="text-white/40 hover:text-white/70 text-sm transition-colors">
-                  Limpar filtros
-                </Link>
-              )}
-            </div>
-          </div>
-        </form>
+        <FiltrosCatalogo
+          incorporadoras={incorporadoras}
+          cidades={cidadesComEmpreendimentos}
+          bairros={bairrosComEmpreendimentos}
+        />
 
         {cards.length === 0 ? (
           <p className="text-white/40 text-center py-24">Nenhum empreendimento encontrado.</p>
@@ -232,7 +176,9 @@ export default async function CatalogoPage({
                 </div>
                 <div className="p-4 space-y-1">
                   <h2 className="font-semibold text-white truncate">{c.nome}</h2>
-                  <p className="text-sm text-white/40">{c.bairro} · {c.cidade}</p>
+                  {(c.bairro || c.cidade) && (
+                    <p className="text-sm text-white/40">{[c.bairro, c.cidade].filter(Boolean).join(' · ')}</p>
+                  )}
                   {c.area != null && (
                     <p className="text-sm text-white/60">A partir de {fmtArea(c.area)}</p>
                   )}

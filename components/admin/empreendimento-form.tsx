@@ -25,7 +25,9 @@ export type FormPreset = {
   nome?: string
   incorporadoraId?: string
   construtora?: string | null
-  bairro?: string
+  cidadeId?: string | null
+  bairroId?: string | null
+  estado?: string
   bairrosProximos?: string[]
   endereco?: string | null
   status?: 'LANCAMENTO' | 'EM_OBRAS' | 'PRONTO'
@@ -129,6 +131,19 @@ type IncOption = {
   ativo: boolean
 }
 
+type CidadeOption = {
+  id: string
+  nome: string
+  estado: string
+  ativo: boolean
+}
+
+type BairroOption = {
+  id: string
+  nome: string
+  ativo: boolean
+}
+
 /* ─── Helpers ────────────────────────────────────────────────────── */
 function emptyTipologia(): Tipologia {
   return {
@@ -227,10 +242,14 @@ export function EmpreendimentoForm({
   editId,
   preset,
   incorporadoraHint,
+  cidadeHint,
+  bairroHint,
 }: {
   editId?: string
   preset?: FormPreset
   incorporadoraHint?: string
+  cidadeHint?: string
+  bairroHint?: string
 }) {
   const router = useRouter()
   const { startUpload } = useR2Upload()
@@ -249,9 +268,16 @@ export function EmpreendimentoForm({
   // Dados gerais
   const [nome, setNome] = useState(preset?.nome ?? '')
   const [construtora, setConstrutora] = useState(preset?.construtora ?? '')
-  const [bairro, setBairro] = useState(preset?.bairro ?? '')
   const [bairrosProximos, setBairrosProximos] = useState<string[]>(preset?.bairrosProximos ?? [])
   const [endereco, setEndereco] = useState(preset?.endereco ?? '')
+
+  // Cidade / Bairro
+  const [cidades, setCidades] = useState<CidadeOption[]>([])
+  const [cidadeId, setCidadeId] = useState(preset?.cidadeId ?? '')
+  const [estado, setEstado] = useState(preset?.estado ?? 'GO')
+  const [bairros, setBairros] = useState<BairroOption[]>([])
+  const [bairrosLoading, setBairrosLoading] = useState(false)
+  const [bairroId, setBairroId] = useState(preset?.bairroId ?? '')
 
   // Status
   const [status, setStatus] = useState<'LANCAMENTO' | 'EM_OBRAS' | 'PRONTO'>(
@@ -339,6 +365,39 @@ export function EmpreendimentoForm({
       })
       .catch(() => setIncLoading(false))
   }, [])
+
+  /* ─── Load cidades ─────────────────────────────────────────────── */
+  useEffect(() => {
+    fetch('/api/admin/cidades')
+      .then((r) => r.json())
+      .then((data: (CidadeOption & { _count?: unknown })[]) => {
+        setCidades(data.filter((c) => c.ativo))
+      })
+      .catch(() => {})
+  }, [])
+
+  /* ─── Load bairros da cidade selecionada ───────────────────────── */
+  useEffect(() => {
+    if (!cidadeId) {
+      setBairros([])
+      return
+    }
+    setBairrosLoading(true)
+    fetch(`/api/admin/cidades/${cidadeId}/bairros`)
+      .then((r) => r.json())
+      .then((data: (BairroOption & { _count?: unknown })[]) => {
+        setBairros(data.filter((b) => b.ativo))
+      })
+      .catch(() => {})
+      .finally(() => setBairrosLoading(false))
+  }, [cidadeId])
+
+  function handleCidadeChange(id: string) {
+    setCidadeId(id)
+    setBairroId('')
+    const cidade = cidades.find((c) => c.id === id)
+    if (cidade) setEstado(cidade.estado)
+  }
 
   useEffect(() => {
     function handleOutside(e: MouseEvent) {
@@ -502,7 +561,9 @@ export function EmpreendimentoForm({
       nome: nome.trim(),
       incorporadoraId,
       construtora: construtora.trim() || null,
-      bairro: bairro.trim(),
+      cidadeId: cidadeId || null,
+      bairroId: bairroId || null,
+      estado: estado.trim() || 'GO',
       bairrosProximos,
       endereco: endereco.trim() || null,
       latitude: latitude ? parseFloat(latitude) : null,
@@ -676,8 +737,57 @@ export function EmpreendimentoForm({
           </div>
 
           <div className="space-y-1.5">
+            <Label>Cidade</Label>
+            {cidadeHint && !cidadeId && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                💡 A IA identificou: <strong>{cidadeHint}</strong> — selecione abaixo.
+              </p>
+            )}
+            <Select value={cidadeId} onValueChange={handleCidadeChange}>
+              <SelectTrigger><SelectValue placeholder="Selecionar cidade..." /></SelectTrigger>
+              <SelectContent>
+                {cidades.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    Nenhuma cidade ativa cadastrada.
+                  </div>
+                ) : (
+                  cidades.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label>Bairro</Label>
-            <Input value={bairro} onChange={(e) => setBairro(e.target.value)} />
+            {bairroHint && !bairroId && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                💡 A IA identificou: <strong>{bairroHint}</strong> — selecione abaixo.
+              </p>
+            )}
+            <Select value={bairroId} onValueChange={setBairroId} disabled={!cidadeId}>
+              <SelectTrigger>
+                <SelectValue placeholder={bairrosLoading ? 'Carregando...' : 'Selecionar bairro...'} />
+              </SelectTrigger>
+              <SelectContent>
+                {bairros.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    Nenhum bairro cadastrado nesta cidade.
+                  </div>
+                ) : (
+                  bairros.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {!cidadeId && (
+              <p className="text-xs text-muted-foreground">Selecione primeiro a cidade</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <Input value={estado} onChange={(e) => setEstado(e.target.value.toUpperCase())} maxLength={2} />
           </div>
           <div className="space-y-1.5">
             <Label>Endereço</Label>

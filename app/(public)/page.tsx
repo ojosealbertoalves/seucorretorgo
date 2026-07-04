@@ -36,7 +36,14 @@ export default async function HomePage() {
   const [pins, empreendimentos, posts] = await Promise.all([
     prisma.empreendimento.findMany({
       where: { ativo: true, latitude: { not: null }, longitude: { not: null } },
-      select: { slug: true, nome: true, bairro: true, latitude: true, longitude: true },
+      select: {
+        slug: true,
+        nome: true,
+        bairroTexto: true,
+        bairro: { select: { nome: true } },
+        latitude: true,
+        longitude: true,
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.empreendimento.findMany({
@@ -46,6 +53,8 @@ export default async function HomePage() {
       include: {
         incorporadora: { select: { nome: true } },
         fotos: { where: { tipo: 'FACHADA' }, orderBy: { ordem: 'asc' }, take: 1 },
+        bairro: { select: { nome: true } },
+        cidade: { select: { nome: true } },
       },
     }),
     prisma.post.findMany({
@@ -59,7 +68,7 @@ export default async function HomePage() {
   const mapPins = pins.map((p) => ({
     slug: p.slug,
     nome: p.nome,
-    bairro: p.bairro,
+    bairro: p.bairro?.nome ?? p.bairroTexto ?? null,
     latitude: p.latitude!,
     longitude: p.longitude!,
   }))
@@ -246,7 +255,7 @@ export default async function HomePage() {
                         {e.nome}
                       </h3>
                       <p className="text-white/40 text-sm mb-3">
-                        {e.incorporadora.nome} · {e.bairro}
+                        {[e.incorporadora.nome, e.bairro?.nome ?? e.bairroTexto].filter(Boolean).join(' · ')}
                       </p>
                       <p className="text-sm font-semibold mb-3" style={{ color: '#E07B3A' }}>
                         A partir de {fmtPreco(e.precoMin)}

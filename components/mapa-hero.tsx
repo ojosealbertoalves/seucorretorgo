@@ -15,7 +15,7 @@ const pinIcon = L.divIcon({
 export type EmpreendimentoPinHero = {
   slug: string
   nome: string
-  bairro: string
+  bairro: string | null
 }
 
 type Props = {
@@ -45,7 +45,7 @@ export default function MapaHero({ empreendimentos }: Props) {
       const popupEl = document.createElement('div')
       popupEl.innerHTML = `
         <strong>${e.nome}</strong><br/>
-        ${e.bairro}<br/>
+        ${e.bairro ? `${e.bairro}<br/>` : ''}
         <a href="/catalogo/${e.slug}" style="color:#E07B3A;font-weight:600;">Ver →</a>
       `
 
