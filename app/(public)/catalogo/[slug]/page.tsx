@@ -38,7 +38,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const TIPO_NEGOCIO_LABEL: Record<string, string> = {
   IMOVEL: 'Imóvel',
-  LOTE: 'Lote/Loteamento',
+  LOTE: 'Loteamento',
 }
 
 const WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5562999999999'
@@ -173,8 +173,21 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
               <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Preço</p>
-              <p className="text-[#1E3A1E] font-bold text-lg">A partir de {fmtPreco(empreendimento.precoMin)}</p>
+              <p className="text-[#1E3A1E] font-bold text-lg">
+                A partir de {fmtPreco(isLote && empreendimento.lotePrecoMin != null ? empreendimento.lotePrecoMin : empreendimento.precoMin)}
+              </p>
             </div>
+
+            {isLote && (empreendimento.loteAreaMin != null || empreendimento.loteAreaMax != null) && (
+              <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
+                <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Área dos lotes</p>
+                <p className="text-[#1E3A1E] font-bold text-lg">
+                  {empreendimento.loteAreaMin != null && `Lotes a partir de ${fmtArea(empreendimento.loteAreaMin)}`}
+                  {empreendimento.loteAreaMin != null && empreendimento.loteAreaMax != null && ' · '}
+                  {empreendimento.loteAreaMax != null && `Até ${fmtArea(empreendimento.loteAreaMax)}`}
+                </p>
+              </div>
+            )}
 
             <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid rgba(30,58,30,0.12)' }}>
               <p className="text-[#1E3A1E]/50 text-xs font-medium uppercase tracking-wide mb-1">Tipo</p>

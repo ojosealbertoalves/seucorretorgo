@@ -42,7 +42,7 @@ export default async function CatalogoPage({
         {([
           { value: '', label: 'Todos' },
           { value: 'IMOVEL', label: 'Imóveis' },
-          { value: 'LOTE', label: 'Lotes e Loteamentos' },
+          { value: 'LOTE', label: 'Loteamento' },
         ] as const).map(({ value, label }) => (
           <Button
             key={value}

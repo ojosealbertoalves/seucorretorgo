@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Trash2, X, Upload, ImagePlus, Loader2, ChevronDown, Building2 } from 'lucide-react'
+import { Plus, Trash2, X, Upload, ImagePlus, Loader2, ChevronDown, Building2, Sparkles } from 'lucide-react'
 import { useR2Upload } from '@/components/R2Upload'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +34,9 @@ export type FormPreset = {
   tipoNegocio?: 'IMOVEL' | 'LOTE'
   infraestrutura?: string | null
   areaTotalLoteamento?: number | null
+  loteAreaMin?: number | null
+  loteAreaMax?: number | null
+  lotePrecoMin?: number | null
   tipologias?: Array<{
     quartos: number
     suites: number
@@ -233,6 +236,8 @@ export function EmpreendimentoForm({
   const { startUpload } = useR2Upload()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [organizandoInfra, setOrganizandoInfra] = useState(false)
+  const [organizandoDescricao, setOrganizandoDescricao] = useState(false)
 
   // Incorporadora
   const [incorporadoras, setIncorporadoras] = useState<IncOption[]>([])
@@ -262,6 +267,15 @@ export function EmpreendimentoForm({
   const [infraestrutura, setInfraestrutura] = useState(preset?.infraestrutura ?? '')
   const [areaTotalLoteamento, setAreaTotalLoteamento] = useState(
     preset?.areaTotalLoteamento != null ? String(preset.areaTotalLoteamento) : ''
+  )
+  const [loteAreaMin, setLoteAreaMin] = useState(
+    preset?.loteAreaMin != null ? String(preset.loteAreaMin) : ''
+  )
+  const [loteAreaMax, setLoteAreaMax] = useState(
+    preset?.loteAreaMax != null ? String(preset.loteAreaMax) : ''
+  )
+  const [lotePrecoMin, setLotePrecoMin] = useState(
+    preset?.lotePrecoMin != null ? String(preset.lotePrecoMin) : ''
   )
 
   // Tipologias
@@ -424,6 +438,30 @@ export function EmpreendimentoForm({
     setLotes((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: val } : l)))
   }
 
+  /* ─── Organizar com IA ────────────────────────────────────────── */
+  async function organizarComIa(contexto: 'infraestrutura' | 'descricao') {
+    const texto = contexto === 'infraestrutura' ? infraestrutura : descricaoCompleta
+    if (!texto.trim()) return
+
+    const setLoading = contexto === 'infraestrutura' ? setOrganizandoInfra : setOrganizandoDescricao
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/organizar-texto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto, contexto }),
+      })
+      if (!res.ok) throw new Error('Falha ao organizar texto')
+      const data = await res.json()
+      if (contexto === 'infraestrutura') setInfraestrutura(data.texto)
+      else setDescricaoCompleta(data.texto)
+    } catch {
+      alert('Erro ao organizar texto com a IA. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   /* ─── Computed ────────────────────────────────────────────────── */
   const precosImovel = tipologias.map((t) => parseFloat(t.preco) || 0).filter((p) => p > 0)
   const precosLote = lotes.map((l) => parseFloat(l.preco) || 0).filter((p) => p > 0)
@@ -480,6 +518,9 @@ export function EmpreendimentoForm({
       tipoNegocio,
       infraestrutura: infraestrutura.trim() || null,
       areaTotalLoteamento: areaTotalLoteamento ? parseFloat(areaTotalLoteamento) : null,
+      loteAreaMin: loteAreaMin ? parseFloat(loteAreaMin) : null,
+      loteAreaMax: loteAreaMax ? parseFloat(loteAreaMax) : null,
+      lotePrecoMin: lotePrecoMin ? parseFloat(lotePrecoMin) : null,
       diferenciais,
       destaqueIa: destaqueIa.trim(),
       descricaoCompleta: descricaoCompleta.trim() || null,
@@ -542,7 +583,7 @@ export function EmpreendimentoForm({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="IMOVEL">Imóvel (apartamento / casa)</SelectItem>
-                <SelectItem value="LOTE">Lote / Loteamento</SelectItem>
+                <SelectItem value="LOTE">Loteamento</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -676,7 +717,45 @@ export function EmpreendimentoForm({
         </div>
       </Section>
 
-      {/* 3 — Tipologias (apenas para IMOVEL) */}
+      {/* 3 — Informações dos lotes (apenas para LOTE) */}
+      {tipoNegocio === 'LOTE' && (
+        <Section title="Informações dos lotes">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Área mínima dos lotes (m²)</Label>
+              <Input
+                type="number" min="0" step="0.01"
+                value={loteAreaMin}
+                onChange={(e) => setLoteAreaMin(e.target.value)}
+                placeholder="Ex: 300"
+              />
+              <p className="text-xs text-muted-foreground">Menor lote disponível</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Área máxima dos lotes (m²)</Label>
+              <Input
+                type="number" min="0" step="0.01"
+                value={loteAreaMax}
+                onChange={(e) => setLoteAreaMax(e.target.value)}
+                placeholder="Ex: 600"
+              />
+              <p className="text-xs text-muted-foreground">Maior lote disponível (opcional)</p>
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>Preço a partir de (R$)</Label>
+              <Input
+                type="number" min="0" step="1000"
+                value={lotePrecoMin}
+                onChange={(e) => setLotePrecoMin(e.target.value)}
+                placeholder="Ex: 500000"
+              />
+              <p className="text-xs text-muted-foreground">Será exibido como &quot;A partir de R$ X&quot;</p>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {/* 3b — Tipologias (apenas para IMOVEL) */}
       {tipoNegocio === 'IMOVEL' && <Section title="Tipologias">
         <div className="flex items-center justify-between">
           {precos.length > 0 && (
@@ -829,7 +908,23 @@ export function EmpreendimentoForm({
               <Input type="number" min="0" step="0.01" value={areaTotalLoteamento} onChange={(e) => setAreaTotalLoteamento(e.target.value)} placeholder="Opcional" />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>Infraestrutura do condomínio</Label>
+              <div className="flex items-center justify-between">
+                <Label>Infraestrutura do condomínio</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-orange-600 hover:text-orange-700"
+                  disabled={organizandoInfra || !infraestrutura.trim()}
+                  onClick={() => organizarComIa('infraestrutura')}
+                >
+                  {organizandoInfra ? (
+                    <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Organizando...</>
+                  ) : (
+                    <><Sparkles className="h-3.5 w-3.5 mr-1" /> Organizar com IA</>
+                  )}
+                </Button>
+              </div>
               <Textarea
                 rows={3}
                 value={infraestrutura}
@@ -869,7 +964,23 @@ export function EmpreendimentoForm({
             <Input value={destaqueIa} onChange={(e) => setDestaqueIa(e.target.value)} placeholder="Frase curta de destaque que a IA vai usar" />
           </div>
           <div className="space-y-1.5">
-            <Label>Descrição completa</Label>
+            <div className="flex items-center justify-between">
+              <Label>Descrição completa</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-orange-600 hover:text-orange-700"
+                disabled={organizandoDescricao || !descricaoCompleta.trim()}
+                onClick={() => organizarComIa('descricao')}
+              >
+                {organizandoDescricao ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Organizando...</>
+                ) : (
+                  <><Sparkles className="h-3.5 w-3.5 mr-1" /> Organizar com IA</>
+                )}
+              </Button>
+            </div>
             <Textarea rows={5} value={descricaoCompleta} onChange={(e) => setDescricaoCompleta(e.target.value)} placeholder="Descrição detalhada do empreendimento..." />
           </div>
         </div>

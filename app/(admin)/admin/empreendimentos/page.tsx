@@ -19,7 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const TIPO_LABEL: Record<string, string> = {
   IMOVEL: 'Imóvel',
-  LOTE: 'Lote',
+  LOTE: 'Loteamento',
 }
 
 function fmt(value: number) {

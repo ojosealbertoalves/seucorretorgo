@@ -42,6 +42,9 @@ export default async function EditarEmpreendimentoPage({
     tipoNegocio: emp.tipoNegocio,
     infraestrutura: emp.infraestrutura,
     areaTotalLoteamento: emp.areaTotalLoteamento,
+    loteAreaMin: emp.loteAreaMin,
+    loteAreaMax: emp.loteAreaMax,
+    lotePrecoMin: emp.lotePrecoMin,
     tipologias: emp.tipologias.map((t, i) => ({
       quartos: t.quartos,
       suites: t.suites,
