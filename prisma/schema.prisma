@@ -99,6 +99,8 @@ model Empreendimento {
   loteAreaMin         Float?
   loteAreaMax         Float?
   lotePrecoMin        Float?
+  videoUrl            String?
+  driveUrl            String?
   tipologias          Tipologia[]
   lotes               Lote[]
   fotos               Foto[]

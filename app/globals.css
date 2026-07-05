@@ -99,6 +99,7 @@ body {
   background: #0F1F0F !important;
   border: 1px solid #1E3A1E !important;
   border-radius: 8px !important;
+  color: #F7F2EA !important;
   box-shadow: 0 4px 24px rgba(0,0,0,0.5) !important;
   padding: 0 !important;
 }
@@ -109,6 +110,9 @@ body {
 .leaflet-popup-content {
   margin: 0 !important;
   width: 220px !important;
+}
+.leaflet-popup-content * {
+  color: inherit;
 }
 .leaflet-popup-close-button {
   color: rgba(247,242,234,0.5) !important;
