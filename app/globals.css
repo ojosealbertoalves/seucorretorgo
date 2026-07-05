@@ -120,3 +120,15 @@ body {
 .leaflet-popup-close-button:hover {
   color: #F7F2EA !important;
 }
+.leaflet-control-layers {
+  background: #0F1F0F !important;
+  border: 1px solid #1E3A1E !important;
+  border-radius: 8px !important;
+  color: #F7F2EA !important;
+}
+.leaflet-control-layers-selector {
+  accent-color: #E07B3A;
+}
+.leaflet-control-layers label {
+  color: #F7F2EA !important;
+}

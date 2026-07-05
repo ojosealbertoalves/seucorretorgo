@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   MessageCircle,
   Building2,
-  Wallet,
   LandPlot,
   Ruler,
   ArrowRight,
@@ -222,27 +221,26 @@ export default async function LotePage({ params }: { params: Promise<{ slug: str
           <h2 className="text-3xl md:text-4xl font-black text-[#F7F2EA] mb-8 leading-tight">
             Interessado neste lote?
           </h2>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a
-              href={ctaHref}
-              target="_blank"
-              rel="noopener noreferrer"
+          <div className="flex flex-col items-center justify-center gap-4">
+            <Link
+              href="/conversar"
               className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
               style={{
                 background: '#E07B3A',
                 boxShadow: '0 8px 40px rgba(224,123,58,0.35)',
               }}
             >
-              <Wallet size={18} />
-              Falar no WhatsApp
-            </a>
-            <Link
-              href="/conversar"
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white font-medium px-8 py-4 rounded-2xl text-base border border-white/25 hover:border-white/50 hover:bg-white/5 transition-all duration-200"
-            >
               <MessageCircle size={18} />
-              Conversar com a IA
+              Conversar com o Alberto →
             </Link>
+            <a
+              href={ctaHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/40 hover:text-white/70 text-xs font-medium transition-colors underline underline-offset-2"
+            >
+              Prefere contato direto? Fale no WhatsApp
+            </a>
           </div>
         </div>
       </section>

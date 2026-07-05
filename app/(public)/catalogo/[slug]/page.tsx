@@ -10,6 +10,7 @@ import { WhatsappStickyCta } from '@/components/whatsapp-sticky-cta'
 import MapaEmpreendimento from '@/components/mapa-empreendimento-loader'
 import NavbarPublica from '@/components/navbar-publica'
 import FooterPublica from '@/components/footer-publica'
+import { DescricaoEmpreendimento } from '@/components/descricao-empreendimento'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import {
@@ -35,17 +36,6 @@ const TIPO_NEGOCIO_LABEL: Record<string, string> = {
 }
 
 const WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5562999999999'
-
-const markdownComponents = {
-  h1: ({ children }: { children?: ReactNode }) => <h1 className="text-2xl font-bold text-[#F7F2EA] mt-6 mb-3">{children}</h1>,
-  h2: ({ children }: { children?: ReactNode }) => <h2 className="text-xl font-bold text-[#F7F2EA] mt-5 mb-2">{children}</h2>,
-  h3: ({ children }: { children?: ReactNode }) => <h3 className="text-lg font-semibold text-[#F7F2EA] mt-4 mb-2">{children}</h3>,
-  p: ({ children }: { children?: ReactNode }) => <p className="leading-relaxed mb-5" style={{ color: 'rgba(247,242,234,0.9)', lineHeight: 1.8, fontSize: '1.05rem' }}>{children}</p>,
-  ul: ({ children }: { children?: ReactNode }) => <ul className="pl-5 mb-5 space-y-2 list-disc" style={{ color: 'rgba(247,242,234,0.9)' }}>{children}</ul>,
-  ol: ({ children }: { children?: ReactNode }) => <ol className="pl-5 mb-5 space-y-2 list-decimal" style={{ color: 'rgba(247,242,234,0.9)' }}>{children}</ol>,
-  li: ({ children }: { children?: ReactNode }) => <li className="leading-relaxed">{children}</li>,
-  strong: ({ children }: { children?: ReactNode }) => <strong className="text-[#F7F2EA] font-semibold">{children}</strong>,
-}
 
 const infraMarkdownComponents = {
   h2: ({ children }: { children?: ReactNode }) => <h2 className="text-xl font-bold mt-6 mb-2 break-inside-avoid-column" style={{ color: '#E07B3A' }}>{children}</h2>,
@@ -171,12 +161,6 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
       : `Olá! Tenho interesse no ${empreendimento.nome}. Pode me dar mais informações?`,
   )}`
 
-  const ctaLotesHref = `https://wa.me/${WA}?text=${encodeURIComponent(
-    bairroNome
-      ? `Olá! Tenho interesse nos lotes do ${empreendimento.nome} em ${bairroNome}. Quais estão disponíveis?`
-      : `Olá! Tenho interesse nos lotes do ${empreendimento.nome}. Quais estão disponíveis?`,
-  )}`
-
   const stats: { valor: ReactNode; label: string; color?: string }[] = []
   if (loteAreaMinValido) {
     stats.push({ valor: fmtArea(empreendimento.loteAreaMin!), label: 'Lotes a partir de' })
@@ -270,11 +254,7 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
             )}
 
             {empreendimento.descricaoCompleta && (
-              <div className="prose-blog">
-                <ReactMarkdown rehypePlugins={[rehypeRaw]} components={markdownComponents}>
-                  {empreendimento.descricaoCompleta}
-                </ReactMarkdown>
-              </div>
+              <DescricaoEmpreendimento texto={empreendimento.descricaoCompleta} />
             )}
           </div>
         </section>
@@ -366,16 +346,14 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
                   </p>
                 )}
                 <p className="text-white/50 text-sm">Consulte disponibilidade e condições de pagamento</p>
-                <a
-                  href={ctaLotesHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/conversar"
                   className="mt-3 inline-flex w-fit items-center gap-2 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all hover:opacity-90"
                   style={{ background: '#E07B3A' }}
                 >
                   <MessageCircle size={16} />
-                  Consultar disponibilidade
-                </a>
+                  Conversar com o Alberto
+                </Link>
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -531,32 +509,30 @@ export default async function EmpreendimentoPage({ params }: { params: Promise<{
             Interessado no {empreendimento.nome}?
           </h2>
           <p className="text-white/60 text-base mb-8">
-            Entre em contato ou converse com nossa IA para saber mais sobre este empreendimento.
+            Converse com o Alberto, nosso assistente, para saber mais sobre este empreendimento.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="flex flex-col items-center justify-center gap-4">
+            <Link
+              href="/conversar"
+              className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
+              style={{ background: '#E07B3A', boxShadow: '0 8px 40px rgba(224,123,58,0.35)' }}
+            >
+              <MessageCircle size={18} />
+              Conversar com o Alberto →
+            </Link>
             <a
               href={ctaHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
-              style={{ background: '#25D366', boxShadow: '0 8px 40px rgba(37,211,102,0.3)' }}
+              className="text-white/40 hover:text-white/70 text-xs font-medium transition-colors underline underline-offset-2"
             >
-              <MessageCircle size={18} />
-              Falar no WhatsApp
+              Prefere contato direto? Fale no WhatsApp
             </a>
-            <Link
-              href="/conversar"
-              className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:scale-105"
-              style={{ background: '#E07B3A' }}
-            >
-              <MessageCircle size={18} />
-              Conversar com a IA
-            </Link>
           </div>
         </div>
       </section>
 
-      <WhatsappStickyCta href={ctaHref} />
+      <WhatsappStickyCta href="/conversar" label="Conversar com o Alberto" color="#E07B3A" />
 
       <FooterPublica />
     </>

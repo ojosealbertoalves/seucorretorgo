@@ -35,9 +35,15 @@ export default function MapaEmpreendimento({ nome, bairro, latitude, longitude }
     })
     mapRef.current = map
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    const mapaEscuro = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
     }).addTo(map)
+
+    const satelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+    })
+
+    L.control.layers({ Mapa: mapaEscuro, Satélite: satelite }, undefined, { position: 'topright' }).addTo(map)
 
     L.marker([latitude, longitude], { icon: markerIcon })
       .addTo(map)

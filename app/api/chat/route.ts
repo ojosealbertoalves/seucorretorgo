@@ -1,6 +1,7 @@
 import { searchEmpreendimentos, searchLotes, type FiltrosBusca, type EmpreendimentoResult, type LoteResult } from '@/lib/search-empreendimentos'
 
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5562999999999'
 
 function orHeaders() {
   return {
@@ -206,6 +207,22 @@ REGRAS ABSOLUTAS:
 
 CTA — só quando demonstrar interesse claro:
 'Quer agendar uma visita? Me passa seu nome, WhatsApp e e-mail que o corretor entra em contato no horário que preferir.'
+
+REGRA DE CONTATO HUMANO:
+Se o cliente pedir para falar com um corretor, com um humano, ou para receber um contato direto:
+
+PASSO 1 — Verifique se já coletou os dados do lead. Os dados necessários são: nome completo, WhatsApp e email.
+
+PASSO 2 — Se NÃO coletou os dados ainda:
+Diga: 'Claro! Para conectar você com nosso corretor, preciso de algumas informações rápidas. Pode me informar seu nome completo, WhatsApp e e-mail?'
+Colete os dados naturalmente na conversa.
+
+PASSO 3 — Após coletar nome + WhatsApp + email:
+1. Salve o lead (já acontece automaticamente via evento LEAD)
+2. Então forneça o contato:
+'Perfeito, [nome]! Registrei suas informações. Nosso corretor vai entrar em contato com você em breve pelo WhatsApp ${WA_NUMBER}. Se preferir, você mesmo pode chamar agora: wa.me/${WA_NUMBER}'
+
+PASSO 4 — Nunca forneça o número do corretor antes de ter coletado pelo menos nome e WhatsApp do cliente. Isso garante que o corretor saberá com quem está falando.
 
 INSTRUÇÕES TÉCNICAS — NÃO MENCIONE NA CONVERSA:
 Quando o cliente fornecer nome + email + WhatsApp voluntariamente, inclua NO FINAL da mensagem:

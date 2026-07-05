@@ -1075,7 +1075,7 @@ export function EmpreendimentoForm({
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label>Descrição completa</Label>
+              <Label>Descrição completa do empreendimento</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -1087,11 +1087,19 @@ export function EmpreendimentoForm({
                 {organizandoDescricao ? (
                   <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Organizando...</>
                 ) : (
-                  <><Sparkles className="h-3.5 w-3.5 mr-1" /> Organizar com IA</>
+                  <>✨ Organizar com IA</>
                 )}
               </Button>
             </div>
-            <Textarea rows={5} value={descricaoCompleta} onChange={(e) => setDescricaoCompleta(e.target.value)} placeholder="Descrição detalhada do empreendimento..." />
+            <Textarea
+              rows={8}
+              value={descricaoCompleta}
+              onChange={(e) => setDescricaoCompleta(e.target.value)}
+              placeholder="Descreva o empreendimento em detalhes: localização, conceito, público-alvo, diferenciais, infraestrutura, condições de pagamento..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta descrição aparece na página pública do empreendimento e é usada pela IA para responder dúvidas dos clientes.
+            </p>
           </div>
         </div>
       </Section>
