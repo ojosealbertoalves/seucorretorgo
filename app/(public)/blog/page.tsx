@@ -9,6 +9,17 @@ function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
+const CATEGORIA_BADGE: Record<string, { bg: string; color: string }> = {
+  Macro: { bg: '#1E3A6E', color: '#8AB4F8' },
+  Micro: { bg: '#1E3A1E', color: '#E07B3A' },
+  'Dicas da Cidade': { bg: '#2D1B4E', color: '#A78BFA' },
+}
+const CATEGORIA_BADGE_DEFAULT = { bg: '#1A1A1A', color: '#888' }
+
+function categoriaBadgeStyle(categoria: string) {
+  return CATEGORIA_BADGE[categoria] ?? CATEGORIA_BADGE_DEFAULT
+}
+
 export const metadata = {
   title: 'Blog · Só Terrenos GO',
   description: 'Dicas, análises e novidades do mercado imobiliário de Goiânia.',
@@ -100,8 +111,8 @@ export default async function BlogPage() {
                   )}
                   {post.categoria && (
                     <span
-                      className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 text-white"
-                      style={{ background: 'rgba(224,123,58,0.85)' }}
+                      className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"
+                      style={{ background: categoriaBadgeStyle(post.categoria).bg, color: categoriaBadgeStyle(post.categoria).color }}
                     >
                       <Tag size={10} />
                       {post.categoria}

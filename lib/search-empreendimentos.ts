@@ -26,33 +26,48 @@ const FOTO_ORDEM: Record<string, number> = {
 async function runQuery(
   filtros: FiltrosBusca,
   opts: { useBairro: boolean; usePreco: boolean },
+  take = 4,
 ) {
   const where: Prisma.EmpreendimentoWhereInput = { ativo: true }
+  const and: Prisma.EmpreendimentoWhereInput[] = []
 
   if (filtros.tipoNegocio) {
     where.tipoNegocio = filtros.tipoNegocio
   }
 
+  // Lotes/loteamentos usam os campos agregados do Empreendimento
+  // (loteAreaMin/loteAreaMax/lotePrecoMin) — a relação `lotes` costuma
+  // ter só um registro placeholder (área/preço zerados, indisponível) e
+  // não deve ser usada para filtrar ou o resultado vem sempre vazio.
   if (filtros.tipoNegocio === 'LOTE') {
     if (filtros.areaTerreno) {
-      where.lotes = { some: { disponivel: true, areaTerreno: { gte: filtros.areaTerreno * 0.7 } } }
-    } else {
-      where.lotes = { some: { disponivel: true } }
+      and.push({
+        OR: [
+          { loteAreaMin: { gte: filtros.areaTerreno } },
+          { loteAreaMax: { gte: filtros.areaTerreno } },
+        ],
+      })
     }
   } else if (filtros.quartos) {
     where.tipologias = { some: { quartos: filtros.quartos, disponivel: true } }
   }
 
   if (opts.useBairro && filtros.bairrosInteresse && filtros.bairrosInteresse.length > 0) {
-    where.OR = [
-      { bairro: { is: { nome: { in: filtros.bairrosInteresse } } } },
-      { bairroTexto: { in: filtros.bairrosInteresse } },
-      { bairrosProximos: { hasSome: filtros.bairrosInteresse } },
-    ]
+    and.push({
+      OR: [
+        { bairro: { is: { nome: { in: filtros.bairrosInteresse } } } },
+        { bairroTexto: { in: filtros.bairrosInteresse } },
+        { bairrosProximos: { hasSome: filtros.bairrosInteresse } },
+      ],
+    })
   }
 
   if (opts.usePreco && filtros.precoMax) {
-    where.precoMin = { lte: filtros.precoMax }
+    if (filtros.tipoNegocio === 'LOTE') {
+      where.lotePrecoMin = { lte: filtros.precoMax }
+    } else {
+      where.precoMin = { lte: filtros.precoMax }
+    }
   }
 
   if (filtros.aceitaFgts) where.aceitaFgts = true
@@ -62,9 +77,11 @@ async function runQuery(
     where.diferenciais = { hasSome: filtros.diferenciais }
   }
 
+  if (and.length > 0) where.AND = and
+
   const rows = await prisma.empreendimento.findMany({
     where,
-    take: 4,
+    take,
     orderBy: { createdAt: 'desc' },
     include: {
       incorporadora: { select: { nome: true, logo: true, descricao: true } },
@@ -91,17 +108,20 @@ async function runQuery(
 
 export type EmpreendimentoResult = Awaited<ReturnType<typeof runQuery>>[number]
 
-export async function searchEmpreendimentos(filtros: FiltrosBusca): Promise<EmpreendimentoResult[]> {
+export async function searchEmpreendimentos(
+  filtros: FiltrosBusca,
+  take = 4,
+): Promise<EmpreendimentoResult[]> {
   // Busca completa com todos os filtros
-  let results = await runQuery(filtros, { useBairro: true, usePreco: true })
+  let results = await runQuery(filtros, { useBairro: true, usePreco: true }, take)
   if (results.length) return results
 
   // Relaxa bairro
-  results = await runQuery(filtros, { useBairro: false, usePreco: true })
+  results = await runQuery(filtros, { useBairro: false, usePreco: true }, take)
   if (results.length) return results
 
   // Relaxa preço também
-  return runQuery(filtros, { useBairro: false, usePreco: false })
+  return runQuery(filtros, { useBairro: false, usePreco: false }, take)
 }
 
 export type FiltrosLotes = {

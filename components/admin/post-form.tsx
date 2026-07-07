@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Save } from 'lucide-react'
+
+const CATEGORIAS = [
+  { value: 'Macro', label: 'Macro (mercado, economia, índices)' },
+  { value: 'Micro', label: 'Micro (oportunidades, preços, localidades)' },
+  { value: 'Dicas da Cidade', label: 'Dicas da Cidade' },
+]
 
 type PostData = {
   titulo: string
@@ -122,13 +129,20 @@ export function PostForm({ initial }: Props) {
       {/* Categoria */}
       <div>
         <label className={labelClass}>Categoria</label>
-        <input
-          type="text"
-          value={form.categoria}
-          onChange={(e) => set('categoria', e.target.value)}
-          placeholder="Ex: Financiamento, Lançamentos, Dicas..."
-          className={inputClass}
-        />
+        <Select
+          value={form.categoria || 'none'}
+          onValueChange={(v) => set('categoria', v === 'none' ? '' : v)}
+        >
+          <SelectTrigger className="bg-white text-gray-900">
+            <SelectValue placeholder="Selecionar categoria..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhuma</SelectItem>
+            {CATEGORIAS.map((c) => (
+              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Capa */}
