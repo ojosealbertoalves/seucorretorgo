@@ -28,6 +28,20 @@ function fmtPreco(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 })
 }
 
+function fmtArea(v: number) {
+  return `${v.toLocaleString('pt-BR')}m²`
+}
+
+function formatarPreco(emp: { tipoNegocio: string; precoMin: number; lotePrecoMin: number | null }) {
+  if (emp.tipoNegocio === 'LOTE' && emp.lotePrecoMin && emp.lotePrecoMin > 0) {
+    return `A partir de ${fmtPreco(emp.lotePrecoMin)}`
+  }
+  if (emp.tipoNegocio === 'IMOVEL' && emp.precoMin > 0) {
+    return `A partir de ${fmtPreco(emp.precoMin)}`
+  }
+  return 'Consulte valores'
+}
+
 function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
@@ -268,8 +282,11 @@ export default async function HomePage() {
                       <p className="text-white/40 text-sm mb-3">
                         {[e.incorporadora.nome, e.bairro?.nome ?? e.bairroTexto].filter(Boolean).join(' · ')}
                       </p>
+                      {isLote && e.loteAreaMin && e.loteAreaMin > 0 && (
+                        <p className="text-white/50 text-xs mb-1">A partir de {fmtArea(e.loteAreaMin)}</p>
+                      )}
                       <p className="text-sm font-semibold mb-3" style={{ color: '#E07B3A' }}>
-                        A partir de {fmtPreco(e.precoMin)}
+                        {formatarPreco(e)}
                       </p>
                       {e.diferenciais.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-4">

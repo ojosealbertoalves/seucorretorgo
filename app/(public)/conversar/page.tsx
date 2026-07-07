@@ -24,6 +24,20 @@ function fmtTime(d: Date) {
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function renderComNegrito(text: string) {
+  const partes = text.split(/(\*\*[^*]+\*\*)/g)
+  return partes.map((parte, i) => {
+    if (parte.startsWith('**') && parte.endsWith('**') && parte.length > 4) {
+      return (
+        <strong key={i} className="font-semibold text-white">
+          {parte.slice(2, -2)}
+        </strong>
+      )
+    }
+    return parte
+  })
+}
+
 type Foto = {
   url: string
   tipo: string
@@ -265,7 +279,7 @@ function MessageBubble({ message }: { message: Message }) {
                   : '1px solid rgba(30,58,30,0.3)',
               }}
             >
-              {message.content}
+              {renderComNegrito(message.content)}
             </div>
           ) : null}
           <span className="text-white/20 text-xs pl-1">{fmtTime(message.createdAt)}</span>
@@ -287,7 +301,7 @@ const WELCOME: Message = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Olá! Sou o Alberto, seu assistente especialista em imóveis novos em Goiânia. 😊\n\nEstou aqui para te ajudar a encontrar o imóvel perfeito, sem pressão e no seu ritmo.\n\nPor onde vamos começar? Você está procurando um apartamento ou uma casa?',
+    'Olá! Sou o Alberto, assistente da **Só Terrenos GO**. 🏡\n\nSomos especializados em **lotes e loteamentos em Goiânia e região metropolitana** — condomínios fechados, terrenos para construir e investir.\n\nPor onde vamos começar? Você busca um **lote em condomínio fechado** ou um **terreno avulso**?',
   createdAt: new Date(),
 }
 
