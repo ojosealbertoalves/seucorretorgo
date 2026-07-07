@@ -1,4 +1,13 @@
-import { searchEmpreendimentos, searchLotes, type FiltrosBusca, type EmpreendimentoResult, type LoteResult } from '@/lib/search-empreendimentos'
+import {
+  searchEmpreendimentos,
+  searchEmpreendimentosDetalhado,
+  searchLotes,
+  listNomesAtivos,
+  getEmpreendimentoPorId,
+  type FiltrosBusca,
+  type EmpreendimentoResult,
+  type LoteResult,
+} from '@/lib/search-empreendimentos'
 
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '5562999999999'
@@ -86,10 +95,24 @@ const FRASES_BUSCA_FORCADA = [
 ]
 
 function temFraseBuscaForcada(messages: { role: string; content: string }[]) {
-  const ultimaDoUsuario = [...messages].reverse().find((m) => m.role === 'user')
-  if (!ultimaDoUsuario) return false
-  const text = ultimaDoUsuario.content.toLowerCase()
+  const text = ultimaMensagemUsuario(messages).toLowerCase()
+  if (!text) return false
   return FRASES_BUSCA_FORCADA.some((f) => text.includes(f))
+}
+
+function ultimaMensagemUsuario(messages: { role: string; content: string }[]) {
+  return [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+}
+
+/** Detecta se o usuário citou o nome de um empreendimento ativo pelo nome (ex: "me fala sobre o Jardins Grécia"). */
+function encontrarEmpreendimentoMencionado(
+  ultimaMensagem: string,
+  nomesAtivos: { id: string; nome: string }[],
+) {
+  const texto = ultimaMensagem.toLowerCase()
+  // nomes mais longos primeiro evita que um nome curto "contido" em outro dê match errado
+  const ordenados = [...nomesAtivos].sort((a, b) => b.nome.length - a.nome.length)
+  return ordenados.find((n) => texto.includes(n.nome.toLowerCase())) ?? null
 }
 
 const LOTE_AVULSO_KEYWORDS = ['lote avulso', 'lote para comprar', 'lote de terceiro']
@@ -302,7 +325,16 @@ export async function POST(req: Request) {
       console.log('[chat] prontoParaBuscar forçado por frase de busca na última mensagem')
     }
 
-    console.log('[chat] filtros extraídos:', JSON.stringify(filtros))
+    console.log('[alberto] filtros extraídos:', JSON.stringify(filtros))
+
+    const nomesAtivos = await listNomesAtivos()
+    const empreendimentoMencionado = encontrarEmpreendimentoMencionado(
+      ultimaMensagemUsuario(apiMessages),
+      nomesAtivos,
+    )
+    if (empreendimentoMencionado) {
+      console.log('[alberto] empreendimento mencionado pelo nome na mensagem:', empreendimentoMencionado.nome)
+    }
 
     const encoder = new TextEncoder()
 
@@ -311,27 +343,50 @@ export async function POST(req: Request) {
         try {
           let empreendimentosJson = '[]'
 
-          if (filtros.prontoParaBuscar) {
-            let results = await searchEmpreendimentos({
-              tipoNegocio: filtros.tipoNegocio,
-              tipo: filtros.tipo,
-              quartos: filtros.quartos,
-              areaTerreno: filtros.areaTerreno,
-              bairrosInteresse: filtros.bairros,
-              precoMax: filtros.precoMax,
-              diferenciais: filtros.diferenciais,
-              aceitaFgts: filtros.aceitaFgts,
-              programaMcmv: filtros.programaMcmv,
-            })
+          if (filtros.prontoParaBuscar || empreendimentoMencionado) {
+            let results: EmpreendimentoResult[] = []
+            let aviso: string | null = null
 
-            // Nunca deixe o contexto vazio se houver QUALQUER empreendimento
-            // ativo no catálogo — sem isso o modelo tende a alucinar "não
-            // temos nada" mesmo quando o problema foi só o filtro ser específico demais.
-            let usouFallbackGeral = false
-            if (results.length === 0) {
-              results = await searchEmpreendimentos({}, 3)
-              usouFallbackGeral = results.length > 0
+            // Menção direta pelo nome tem prioridade — busca só aquele
+            // empreendimento com todos os dados, sem depender dos filtros extraídos.
+            if (empreendimentoMencionado) {
+              const specific = await getEmpreendimentoPorId(empreendimentoMencionado.id)
+              if (specific) results = [specific]
             }
+
+            if (results.length === 0 && filtros.prontoParaBuscar) {
+              const filtrosBusca: FiltrosBusca = {
+                tipoNegocio: filtros.tipoNegocio,
+                tipo: filtros.tipo,
+                quartos: filtros.quartos,
+                areaTerreno: filtros.areaTerreno,
+                bairrosInteresse: filtros.bairros,
+                precoMax: filtros.precoMax,
+                diferenciais: filtros.diferenciais,
+                aceitaFgts: filtros.aceitaFgts,
+                programaMcmv: filtros.programaMcmv,
+              }
+              console.log('[alberto] buscando empreendimentos com filtros:', JSON.stringify(filtrosBusca))
+
+              const busca = await searchEmpreendimentosDetalhado(filtrosBusca)
+              results = busca.results
+
+              // Nunca deixe o contexto vazio se houver QUALQUER empreendimento
+              // ativo no catálogo — sem isso o modelo tende a alucinar "não
+              // temos nada" mesmo quando o problema foi só o filtro ser específico demais.
+              if (results.length === 0) {
+                results = await searchEmpreendimentos({}, 3)
+                if (results.length > 0) {
+                  aviso = 'Nenhum empreendimento correspondeu aos filtros informados. Empreendimentos disponíveis no catálogo geral:'
+                }
+              } else if (busca.relaxouLocalizacao && filtrosBusca.bairrosInteresse?.length) {
+                aviso = `Não encontrei empreendimentos exatamente em ${filtrosBusca.bairrosInteresse.join(', ')}, mas temos estas opções disponíveis:`
+              }
+            }
+
+            console.log('[alberto] empreendimentos encontrados:', results.length)
+            console.log('[alberto] nomes:', results.map((e) => e.nome))
+            console.log('[alberto] contexto injetado:', results.length > 0 ? 'SIM' : 'VAZIO')
 
             if (results.length > 0) {
               controller.enqueue(
@@ -340,13 +395,7 @@ export async function POST(req: Request) {
                 ),
               )
               const json = JSON.stringify(buildContextJson(results))
-              empreendimentosJson = usouFallbackGeral
-                ? `Nenhum empreendimento corresponde exatamente aos filtros informados. Empreendimentos disponíveis no catálogo geral:\n${json}`
-                : json
-              console.log(
-                '[chat] empreendimentos encontrados:', results.length,
-                usouFallbackGeral ? '(fallback catálogo geral)' : '',
-              )
+              empreendimentosJson = aviso ? `${aviso}\n${json}` : json
             }
           }
 

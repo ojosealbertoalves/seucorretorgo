@@ -23,6 +23,33 @@ const FOTO_ORDEM: Record<string, number> = {
   OUTRO: 5,
 }
 
+const EMPREENDIMENTO_INCLUDE = {
+  incorporadora: { select: { nome: true, logo: true, descricao: true } },
+  tipologias: { where: { disponivel: true }, orderBy: { preco: 'asc' as const } },
+  lotes: { where: { disponivel: true }, orderBy: { preco: 'asc' as const } },
+  fotos: { orderBy: { ordem: 'asc' as const }, take: 10 },
+  bairro: { select: { nome: true } },
+  cidade: { select: { nome: true } },
+} satisfies Prisma.EmpreendimentoInclude
+
+type EmpreendimentoRow = Prisma.EmpreendimentoGetPayload<{ include: typeof EMPREENDIMENTO_INCLUDE }>
+
+function mapRow(e: EmpreendimentoRow) {
+  return {
+    ...e,
+    bairro: e.bairro?.nome ?? e.bairroTexto ?? '',
+    cidade: e.cidade?.nome ?? e.cidadeTexto ?? '',
+    fotos: [...e.fotos]
+      .sort(
+        (a, b) =>
+          (FOTO_ORDEM[a.tipo] ?? 99) - (FOTO_ORDEM[b.tipo] ?? 99) || a.ordem - b.ordem,
+      )
+      .slice(0, 5),
+  }
+}
+
+export type EmpreendimentoResult = ReturnType<typeof mapRow>
+
 async function runQuery(
   filtros: FiltrosBusca,
   opts: { useBairro: boolean; usePreco: boolean },
@@ -52,12 +79,18 @@ async function runQuery(
     where.tipologias = { some: { quartos: filtros.quartos, disponivel: true } }
   }
 
+  // O termo de localização pode ser um bairro OU uma cidade (ex: "Senador
+  // Canedo" é cidade, não bairro) — busca nos dois relacionamentos e nos
+  // campos de texto legados (cidadeTexto/bairroTexto) para não depender de
+  // todo empreendimento ter cidadeId/bairroId preenchidos corretamente.
   if (opts.useBairro && filtros.bairrosInteresse && filtros.bairrosInteresse.length > 0) {
     and.push({
       OR: [
         { bairro: { is: { nome: { in: filtros.bairrosInteresse } } } },
         { bairroTexto: { in: filtros.bairrosInteresse } },
         { bairrosProximos: { hasSome: filtros.bairrosInteresse } },
+        { cidade: { is: { nome: { in: filtros.bairrosInteresse } } } },
+        { cidadeTexto: { in: filtros.bairrosInteresse } },
       ],
     })
   }
@@ -83,45 +116,60 @@ async function runQuery(
     where,
     take,
     orderBy: { createdAt: 'desc' },
-    include: {
-      incorporadora: { select: { nome: true, logo: true, descricao: true } },
-      tipologias: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
-      lotes: { where: { disponivel: true }, orderBy: { preco: 'asc' } },
-      fotos: { orderBy: { ordem: 'asc' }, take: 10 },
-      bairro: { select: { nome: true } },
-      cidade: { select: { nome: true } },
-    },
+    include: EMPREENDIMENTO_INCLUDE,
   })
 
-  return rows.map((e) => ({
-    ...e,
-    bairro: e.bairro?.nome ?? e.bairroTexto ?? '',
-    cidade: e.cidade?.nome ?? e.cidadeTexto ?? '',
-    fotos: [...e.fotos]
-      .sort(
-        (a, b) =>
-          (FOTO_ORDEM[a.tipo] ?? 99) - (FOTO_ORDEM[b.tipo] ?? 99) || a.ordem - b.ordem,
-      )
-      .slice(0, 5),
-  }))
+  return rows.map(mapRow)
 }
 
-export type EmpreendimentoResult = Awaited<ReturnType<typeof runQuery>>[number]
+export type BuscaEmpreendimentosResultado = {
+  results: EmpreendimentoResult[]
+  /** true quando o resultado só veio depois de ignorar o filtro de bairro/cidade */
+  relaxouLocalizacao: boolean
+  /** true quando o resultado só veio depois de também ignorar o filtro de preço */
+  relaxouPreco: boolean
+}
+
+export async function searchEmpreendimentosDetalhado(
+  filtros: FiltrosBusca,
+  take = 4,
+): Promise<BuscaEmpreendimentosResultado> {
+  // Busca completa com todos os filtros
+  let results = await runQuery(filtros, { useBairro: true, usePreco: true }, take)
+  if (results.length) return { results, relaxouLocalizacao: false, relaxouPreco: false }
+
+  // Relaxa bairro/cidade
+  results = await runQuery(filtros, { useBairro: false, usePreco: true }, take)
+  if (results.length) return { results, relaxouLocalizacao: true, relaxouPreco: false }
+
+  // Relaxa preço também
+  results = await runQuery(filtros, { useBairro: false, usePreco: false }, take)
+  return { results, relaxouLocalizacao: true, relaxouPreco: results.length > 0 }
+}
 
 export async function searchEmpreendimentos(
   filtros: FiltrosBusca,
   take = 4,
 ): Promise<EmpreendimentoResult[]> {
-  // Busca completa com todos os filtros
-  let results = await runQuery(filtros, { useBairro: true, usePreco: true }, take)
-  if (results.length) return results
+  const { results } = await searchEmpreendimentosDetalhado(filtros, take)
+  return results
+}
 
-  // Relaxa bairro
-  results = await runQuery(filtros, { useBairro: false, usePreco: true }, take)
-  if (results.length) return results
+/** Nomes + id dos empreendimentos ativos — usado para detectar menção direta pelo nome na mensagem do usuário. */
+export async function listNomesAtivos(): Promise<{ id: string; nome: string }[]> {
+  return prisma.empreendimento.findMany({
+    where: { ativo: true },
+    select: { id: true, nome: true },
+    orderBy: { createdAt: 'desc' },
+  })
+}
 
-  // Relaxa preço também
-  return runQuery(filtros, { useBairro: false, usePreco: false }, take)
+export async function getEmpreendimentoPorId(id: string): Promise<EmpreendimentoResult | null> {
+  const row = await prisma.empreendimento.findFirst({
+    where: { id, ativo: true },
+    include: EMPREENDIMENTO_INCLUDE,
+  })
+  return row ? mapRow(row) : null
 }
 
 export type FiltrosLotes = {
