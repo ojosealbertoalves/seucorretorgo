@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { enviarEmailNovoLead } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -9,6 +10,8 @@ export async function POST(req: Request) {
     }
 
     const telefone = whatsapp || ''
+
+    const existing = await prisma.lead.findUnique({ where: { email } })
 
     const lead = await prisma.lead.upsert({
       where: { email },
@@ -22,6 +25,15 @@ export async function POST(req: Request) {
         historicoJson: historicoJson ?? [],
       },
     })
+
+    if (!existing) {
+      await enviarEmailNovoLead({
+        nome: lead.nome,
+        email: lead.email,
+        whatsapp: lead.whatsapp ?? telefone,
+        score: lead.score,
+      })
+    }
 
     return Response.json({ ok: true, leadId: lead.id })
   } catch (err) {
