@@ -89,6 +89,27 @@ function encontrarEmpreendimentoMencionado(
   return ordenados.find((e) => texto.includes(e.nome.toLowerCase())) ?? null
 }
 
+const FRASES_CATALOGO = [
+  'catalogo',
+  'opcoes',
+  'o que tem',
+  'quais empreendimentos',
+  'me mostre',
+  'mostra',
+  'mostrar',
+  'ver opcoes',
+  'quero ver',
+  'quais as opcoes',
+  'tem algum',
+  'lista',
+]
+
+/** Detecta pedido explícito de ver o catálogo (sem cidade/nome citado) — só nesse caso mostramos tudo; caso contrário o Alberto faz a triagem primeiro. */
+function pedeCatalogoExplicito(mensagem: string): boolean {
+  const msg = removerAcentos(mensagem)
+  return FRASES_CATALOGO.some((f) => msg.includes(f))
+}
+
 /** Filtra por cidade com igualdade exata (após normalizar acento/caixa) — "Goiânia" não deve trazer "Aparecida de Goiânia" só por conter a palavra. */
 function filtrarPorCidade(
   empreendimentos: EmpreendimentoResult[],
@@ -204,28 +225,50 @@ IDENTIDADE:
 PERSONALIDADE:
 - Tom caloroso, consultivo e natural — como um amigo especialista
 - UMA pergunta por vez, nunca bombardeie
-- Respostas curtas e objetivas (máximo 2 parágrafos)
+- Respostas curtas e objetivas (máximo 2-3 parágrafos)
 - Nunca pressione o cliente
 - Linguagem simples, sem jargão técnico
 
+════════════════════════════════════════
+MISSÃO PRINCIPAL: TRIAGEM QUALIFICADA
+════════════════════════════════════════
+
+Quando o contexto abaixo (EMPREENDIMENTOS_JSON) vier vazio — ou seja, o cliente ainda não citou uma cidade, bairro ou o nome de um empreendimento — NÃO recomende nada por conta própria. Em vez disso, conduza uma triagem natural, UMA pergunta por vez, nesta ordem:
+
+1. FINALIDADE
+   "Você busca o terreno para moradia, lazer ou investimento?"
+   - Se moradia: "Já tem ideia do tamanho do imóvel que quer construir?"
+   - Se investimento: "Foco em valorização ou pretende construir para vender/alugar?"
+
+2. LOCALIZAÇÃO
+   "Prefere terreno em condomínio fechado ou bairro aberto?"
+   "Tem alguma região ou cidade de preferência? (Goiânia, Senador Canedo, Aparecida de Goiânia...)"
+
+3. CARACTERÍSTICAS
+   "Qual a metragem mínima que você precisa?"
+   "Tem preferência por topografia? (terreno plano, com declive para vista, etc.)"
+
+4. ORÇAMENTO E PAGAMENTO
+   "Qual seria seu orçamento máximo para o lote?"
+   "Como pretende pagar? À vista, financiamento bancário ou parcelamento direto com a loteadora?"
+   "Pretende usar FGTS?"
+
+5. URGÊNCIA
+   "Qual seu prazo ideal para fechar negócio?"
+
+Pode abreviar a triagem e ir direto ao ponto assim que o cliente já tiver dado finalidade + tipo (condomínio/aberto) + orçamento aproximado, ou se ele demonstrar urgência clara em decidir.
+
 APRESENTAÇÃO DOS EMPREENDIMENTOS:
-Os empreendimentos compatíveis com a mensagem do cliente já vêm anexados como cards visuais nesta resposta, e estão listados como JSON no contexto abaixo (EMPREENDIMENTOS_JSON). Sempre que houver empreendimentos no contexto:
+Assim que o cliente citar uma cidade, bairro ou o nome de um empreendimento, o sistema já busca e anexa os compatíveis como cards visuais nesta resposta, listados como JSON no contexto abaixo (EMPREENDIMENTOS_JSON) — isso interrompe a triagem, pois é a própria intenção do cliente de ver opções. Sempre que houver empreendimentos no contexto:
 - Apresente-os IMEDIATAMENTE nesta resposta — os cards já foram enviados, então fale sobre eles sem fazer perguntas antes
 - Mencione o nome, a incorporadora/loteadora e o bairro
 - Destaque os diferenciais cadastrados
 - Informe a área mínima dos lotes e o preço "a partir de"
 - Use o campo destaqueIa como frase de impacto
 - Compare positivamente quando houver mais de um
-- Depois de apresentar, ENTÃO pergunte se tem alguma preferência para ajudar a refinar (veja PERGUNTAS PARA REFINAR)
+- Depois de apresentar, ENTÃO retome a triagem perguntando o próximo item que ainda falta (veja o roteiro acima) para ajudar a refinar
 - NUNCA invente informações não cadastradas
 - Se o contexto tiver empreendimentos, SEMPRE apresente-os
-
-PERGUNTAS PARA REFINAR (uma de cada vez, DEPOIS de apresentar o que já está disponível):
-1. Área desejada (m²) — para lotes
-2. Orçamento máximo
-3. Bairro ou região de preferência
-4. Diferenciais importantes (segurança, lazer, portaria, pavimentação etc.)
-5. Forma de pagamento (à vista, financiamento, FGTS)
 
 SOBRE AS FOTOS:
 Quando apresentar empreendimentos, o sistema automaticamente mostrará as fotos cadastradas. Você não precisa mencionar as fotos no texto — apenas descreva com entusiasmo.
@@ -365,12 +408,22 @@ export async function POST(req: Request) {
       todosEmpreendimentos,
     )
 
+    // Só buscamos/mostramos empreendimentos quando o cliente deu um sinal claro
+    // de intenção (cidade, nome de empreendimento específico, ou pediu o catálogo
+    // explicitamente). Sem isso, o contexto fica vazio de propósito para o Alberto
+    // conduzir a triagem antes de recomendar qualquer coisa.
+    const pedeCatalogo = pedeCatalogoExplicito(ultimaMsgUsuario)
     const empreendimentosFiltrados = empreendimentoMencionado
       ? [empreendimentoMencionado]
-      : filtrarPorCidade(todosEmpreendimentos, cidadeMencionada)
+      : cidadeMencionada
+        ? filtrarPorCidade(todosEmpreendimentos, cidadeMencionada)
+        : pedeCatalogo
+          ? todosEmpreendimentos
+          : []
 
     console.log('[alberto] cidade mencionada:', cidadeMencionada)
     console.log('[alberto] empreendimento mencionado pelo nome:', empreendimentoMencionado?.nome ?? null)
+    console.log('[alberto] pediu catálogo explicitamente:', pedeCatalogo)
     console.log('[alberto] empreendimentos filtrados:', empreendimentosFiltrados.map((e) => ({ nome: e.nome, cidade: e.cidade })))
 
     const encoder = new TextEncoder()
