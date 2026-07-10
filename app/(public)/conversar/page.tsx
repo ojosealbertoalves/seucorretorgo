@@ -323,7 +323,7 @@ const WELCOME: Message = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Olá! Sou o Alberto, assistente da **Só Terrenos GO**. 🏡\n\nSomos especializados em **lotes e loteamentos em Goiânia e região metropolitana** — condomínios fechados, terrenos para construir e investir.\n\nPor onde vamos começar? Você busca um **lote em condomínio fechado** ou um **terreno avulso**?',
+    'Olá! Sou o Alberto, assistente da **Só Terrenos GO**. 🏡\n\nSomos especializados em **lotes e loteamentos em Goiânia e região metropolitana** — condomínios fechados, terrenos para construir e investir.\n\nEstou aqui para te ajudar a encontrar o terreno ideal, no seu ritmo e sem pressão. E a qualquer momento, se preferir, é só me pedir que **um dos nossos corretores entra em contato com você pelo WhatsApp**. 😊\n\nPor onde vamos começar? Você busca um **lote em condomínio fechado** ou um **terreno avulso**?',
   createdAt: new Date(),
 }
 
