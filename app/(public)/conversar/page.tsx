@@ -20,6 +20,10 @@ function fmt(n: number) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
+function formatBRL(n: number) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+}
+
 function fmtTime(d: Date) {
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
@@ -61,13 +65,37 @@ type CardData = {
   bairro: string
   cidade: string
   status: string
+  tipoNegocio: string
   precoMin: number
   precoMax: number
+  lotePrecoMin: number | null
+  loteAreaMin: number | null
   diferenciais: string[]
   destaqueIa: string
   incorporadora: { nome: string; logo: string | null }
   tipologias: Tipologia[]
   fotos: Foto[]
+}
+
+function renderPreco(card: CardData) {
+  if (card.tipoNegocio === 'LOTE' && card.lotePrecoMin && card.lotePrecoMin > 0) {
+    return `A partir de ${formatBRL(card.lotePrecoMin)}`
+  }
+  if (card.tipoNegocio === 'IMOVEL' && card.precoMin && card.precoMin > 0) {
+    return `A partir de ${formatBRL(card.precoMin)}`
+  }
+  return 'Consulte valores'
+}
+
+function renderArea(card: CardData) {
+  if (card.tipoNegocio === 'LOTE' && card.loteAreaMin && card.loteAreaMin > 0) {
+    return `Lotes a partir de ${fmt(card.loteAreaMin)}m²`
+  }
+  const mainTypo = card.tipologias[0]
+  if (card.tipoNegocio === 'IMOVEL' && mainTypo) {
+    return `${mainTypo.quartos} quartos · ${fmt(mainTypo.areaPrivativa)}m²`
+  }
+  return null
 }
 
 type Message = {
@@ -109,9 +137,9 @@ function PropertyCard({ card }: { card: CardData }) {
   const [photoIdx, setPhotoIdx] = useState(0)
   const photos = card.fotos.slice(0, 5)
   const current = photos[photoIdx] ?? null
-  const mainTypo = card.tipologias[0]
   const badges = card.diferenciais.slice(0, 3)
   const statusColor = STATUS_COLOR[card.status] ?? '#E07B3A'
+  const area = renderArea(card)
 
   return (
     <div
@@ -200,16 +228,10 @@ function PropertyCard({ card }: { card: CardData }) {
         </div>
 
         <p className="font-bold text-sm" style={{ color: '#E07B3A' }}>
-          R$ {fmt(card.precoMin)}
-          {card.precoMin !== card.precoMax && ` – ${fmt(card.precoMax)}`}
+          {renderPreco(card)}
         </p>
 
-        {mainTypo && (
-          <p className="text-white/50 text-xs">
-            {mainTypo.quartos} qtos · {mainTypo.areaPrivativa}m² · {mainTypo.vagas} vaga
-            {mainTypo.vagas !== 1 ? 's' : ''}
-          </p>
-        )}
+        {area && <p className="text-white/50 text-xs">{area}</p>}
 
         {badges.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -310,6 +332,7 @@ export default function ConversarPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -324,9 +347,16 @@ export default function ConversarPage() {
     return () => clearTimeout(t)
   }, [toast])
 
+  // Contador regressivo do cooldown de rate limit
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(t)
+  }, [cooldown])
+
   const sendMessage = useCallback(async () => {
     const text = input.trim()
-    if (!text || loading) return
+    if (!text || loading || cooldown > 0) return
 
     const now = new Date()
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: text, createdAt: now }
@@ -351,6 +381,22 @@ export default function ConversarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: historyForApi }),
       })
+
+      if (res.status === 429) {
+        setCooldown(30)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content: 'Você enviou muitas mensagens em pouco tempo. Aguarde alguns segundos antes de continuar. ⏱️',
+                  isError: true,
+                }
+              : m,
+          ),
+        )
+        return
+      }
 
       if (!res.ok || !res.body) throw new Error('Falha na requisição')
 
@@ -438,7 +484,7 @@ export default function ConversarPage() {
     } finally {
       setLoading(false)
     }
-  }, [input, loading, messages])
+  }, [input, loading, cooldown, messages])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -530,23 +576,31 @@ export default function ConversarPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Converse com o Alberto..."
-              disabled={loading}
+              placeholder={cooldown > 0 ? `Aguarde ${cooldown}s...` : 'Converse com o Alberto...'}
+              disabled={loading || cooldown > 0}
               maxLength={500}
               className="flex-1 bg-transparent text-white placeholder-white/25 text-sm outline-none disabled:opacity-50"
             />
             {input.length > 0 && (
-              <span className="text-white/20 text-xs shrink-0 tabular-nums">
-                {input.length}
+              <span
+                className={`text-xs shrink-0 tabular-nums ${
+                  input.length > 400 ? 'text-red-400' : 'text-white/20'
+                }`}
+              >
+                {input.length}/500
               </span>
             )}
             <button
               onClick={sendMessage}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || cooldown > 0}
               className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all duration-200 hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
               style={{ background: '#E07B3A' }}
             >
-              <Send size={14} />
+              {cooldown > 0 ? (
+                <span className="text-xs font-bold tabular-nums">{cooldown}</span>
+              ) : (
+                <Send size={14} />
+              )}
             </button>
           </div>
           <p className="text-white/18 text-xs text-center mt-2">
