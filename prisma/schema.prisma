@@ -93,7 +93,7 @@ model Empreendimento {
   diferenciais        String[]
   destaqueIa          String
   descricaoCompleta   String?
-  tipoNegocio         TipoNegocio @default(IMOVEL)
+  tipoNegocio         TipoNegocio   @default(IMOVEL)
   infraestrutura      String?
   areaTotalLoteamento Float?
   loteAreaMin         Float?
@@ -147,22 +147,22 @@ model Foto {
 }
 
 model LoteAnuncio {
-  id               String            @id @default(cuid())
-  titulo           String
-  slug             String            @unique
-  descricao        String?
-  bairro           String
-  cidade           String            @default("Goiânia")
-  estado           String            @default("GO")
-  area             Float
-  frente           Float?
-  preco            Float
-  fotos            LoteAnuncioFoto[]
-  loteamentoId     String?
-  loteamento       Empreendimento?   @relation(fields: [loteamentoId], references: [id])
-  ativo            Boolean           @default(false)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id           String            @id @default(cuid())
+  titulo       String
+  slug         String            @unique
+  descricao    String?
+  bairro       String
+  cidade       String            @default("Goiânia")
+  estado       String            @default("GO")
+  area         Float
+  frente       Float?
+  preco        Float
+  fotos        LoteAnuncioFoto[]
+  loteamentoId String?
+  loteamento   Empreendimento?   @relation(fields: [loteamentoId], references: [id])
+  ativo        Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
 model LoteAnuncioFoto {
@@ -175,19 +175,21 @@ model LoteAnuncioFoto {
 }
 
 model Lead {
-  id               String     @id @default(cuid())
-  nome             String
-  email            String     @unique
-  telefone         String
-  whatsapp         String?
-  status           String     @default("novo")
-  orcamentoMax     Float?
-  bairrosInteresse String[]
-  tipoImovel       String?
-  score            Int        @default(0)
-  conversas        Conversa[]
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  id                       String     @id @default(cuid())
+  nome                     String
+  email                    String     @unique
+  telefone                 String
+  whatsapp                 String?
+  status                   String     @default("novo")
+  orcamentoMax             Float?
+  bairrosInteresse         String[]
+  tipoImovel               String?
+  score                    Int        @default(0)
+  notas                    String?
+  empreendimentosInteresse String?
+  conversas                Conversa[]
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
 }
 
 model Conversa {

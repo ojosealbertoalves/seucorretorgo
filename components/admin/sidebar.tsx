@@ -17,7 +17,7 @@ const navItems = [
   { href: '/admin/newsletter', label: 'Newsletter', icon: Mail, exact: false },
 ]
 
-export function AdminSidebar() {
+export function AdminSidebar({ newLeadsCount = 0 }: { newLeadsCount?: number }) {
   const pathname = usePathname()
 
   return (
@@ -49,7 +49,15 @@ export function AdminSidebar() {
                 style={isActive ? { backgroundColor: '#E07B3A' } : undefined}
               >
                 <Icon size={18} />
-                {label}
+                <span className="flex-1">{label}</span>
+                {href === '/admin/leads' && newLeadsCount > 0 && (
+                  <span
+                    className="text-xs font-bold rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
+                    style={{ background: isActive ? 'rgba(255,255,255,0.25)' : '#E07B3A', color: 'white' }}
+                  >
+                    {newLeadsCount}
+                  </span>
+                )}
               </Link>
 
               {/* Sub-item: Importar via IA under Empreendimentos */}
