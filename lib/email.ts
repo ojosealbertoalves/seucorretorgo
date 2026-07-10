@@ -1,13 +1,20 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function enviarEmailNovoLead(lead: {
   nome: string
   email: string
   whatsapp: string
   score?: number
 }) {
+  const apiKey = process.env.RESEND_API_KEY
+
+  if (!apiKey) {
+    console.warn('[email] RESEND_API_KEY não configurada — email não enviado')
+    return
+  }
+
+  const resend = new Resend(apiKey)
+
   try {
     await resend.emails.send({
       from: 'Alberto <onboarding@resend.dev>',
