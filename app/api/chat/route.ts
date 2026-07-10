@@ -61,6 +61,37 @@ function normalizarCidade(termo: string): string {
   return MAPA_CIDADES[termoLower] || termo
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Detecta cidades citadas diretamente no texto da mensagem, independente do
+ * que o LLM de extração de filtros (extractFiltros) tenha retornado. Serve de
+ * rede de segurança para frases como "catálogo de Goiânia" ou "o que vocês
+ * têm em Senador Canedo?" — onde o pedido de "mostrar tudo" pode fazer o
+ * modelo de extração ignorar a cidade mencionada e devolver bairros vazio,
+ * o que faria a busca rodar sem filtro de localização e trazer TODAS as
+ * cidades como se fossem o resultado pedido.
+ */
+function detectarCidadesMencionadas(mensagem: string): string[] {
+  let texto = ` ${mensagem.toLowerCase()} `
+  const encontradas = new Set<string>()
+  const chaves = Object.keys(MAPA_CIDADES).sort((a, b) => b.length - a.length)
+
+  for (const chave of chaves) {
+    const regex = new RegExp(`\\b${escapeRegExp(chave)}\\b`)
+    if (regex.test(texto)) {
+      encontradas.add(MAPA_CIDADES[chave])
+      // Remove o trecho já casado para uma chave mais longa (ex: "aparecida de
+      // goiânia") não deixar a chave curta "goiânia" casar de novo por cima.
+      texto = texto.replace(regex, ' ')
+    }
+  }
+
+  return [...encontradas]
+}
+
 type FiltrosExtraidos = FiltrosBusca & {
   bairros?: string[] | null
   prontoParaBuscar: boolean
@@ -438,6 +469,19 @@ export async function POST(req: Request) {
 
     if (filtros.bairros?.length) {
       filtros.bairros = filtros.bairros.map(normalizarCidade)
+    }
+
+    // Backstop determinístico: garante a cidade mesmo se o LLM de extração
+    // não a tiver capturado (ex: falha na chamada, ou frase de "mostrar
+    // catálogo" fazendo o modelo devolver bairros vazio).
+    const cidadesMencionadas = detectarCidadesMencionadas(ultimaMensagemUsuario(apiMessages))
+    if (cidadesMencionadas.length > 0) {
+      const jaTinha = new Set(filtros.bairros ?? [])
+      const novas = cidadesMencionadas.filter((c) => !jaTinha.has(c))
+      if (novas.length > 0) {
+        filtros.bairros = [...(filtros.bairros ?? []), ...novas]
+        console.log('[chat] cidade detectada diretamente na mensagem:', novas)
+      }
     }
 
     if (!filtros.prontoParaBuscar && temFraseBuscaForcada(apiMessages)) {
