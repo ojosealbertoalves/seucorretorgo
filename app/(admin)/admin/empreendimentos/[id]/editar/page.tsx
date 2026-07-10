@@ -73,6 +73,8 @@ export default async function EditarEmpreendimentoPage({
     descricaoCompleta: emp.descricaoCompleta,
     latitude: emp.latitude,
     longitude: emp.longitude,
+    videoUrl: emp.videoUrl,
+    driveUrl: emp.driveUrl,
     ativo: emp.ativo,
     fotos: fotosSemPlanta.map((f) => ({
       url: f.url,

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Trash2, X, Upload, ImagePlus, Loader2, ChevronDown, Building2, Sparkles } from 'lucide-react'
+import { Plus, Trash2, X, Upload, ImagePlus, Loader2, ChevronDown, Building2, Sparkles, Play, FolderOpen } from 'lucide-react'
 import { useR2Upload } from '@/components/R2Upload'
 import { cn } from '@/lib/utils'
 
@@ -65,6 +65,8 @@ export type FormPreset = {
   descricaoCompleta?: string | null
   latitude?: number | null
   longitude?: number | null
+  videoUrl?: string | null
+  driveUrl?: string | null
   ativo?: boolean
   fotos?: Array<{
     url: string
@@ -334,6 +336,10 @@ export function EmpreendimentoForm({
     preset?.longitude != null ? String(preset.longitude) : ''
   )
 
+  // Mídia externa
+  const [videoUrl, setVideoUrl] = useState(preset?.videoUrl ?? '')
+  const [driveUrl, setDriveUrl] = useState(preset?.driveUrl ?? '')
+
   // Publicação
   const [ativo, setAtivo] = useState(preset?.ativo ?? false)
 
@@ -568,6 +574,8 @@ export function EmpreendimentoForm({
       endereco: endereco.trim() || null,
       latitude: latitude ? parseFloat(latitude) : null,
       longitude: longitude ? parseFloat(longitude) : null,
+      videoUrl: videoUrl.trim() || null,
+      driveUrl: driveUrl.trim() || null,
       precoMin,
       precoMax,
       aceitaFgts,
@@ -1119,6 +1127,36 @@ export function EmpreendimentoForm({
         <p className="text-xs text-muted-foreground">
           Clique com botão direito no Google Maps → as coordenadas aparecem no topo do menu de contexto.
         </p>
+      </Section>
+
+      {/* 6b — Mídia Externa */}
+      <Section title="Mídia Externa">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Play className="h-4 w-4 text-muted-foreground" />
+              Link do vídeo (YouTube)
+            </Label>
+            <Input
+              type="url"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <FolderOpen className="h-4 w-4 text-muted-foreground" />
+              Link de documentos (Google Drive)
+            </Label>
+            <Input
+              type="url"
+              value={driveUrl}
+              onChange={(e) => setDriveUrl(e.target.value)}
+              placeholder="https://drive.google.com/..."
+            />
+          </div>
+        </div>
       </Section>
 
       {/* 7 — Publicação */}
