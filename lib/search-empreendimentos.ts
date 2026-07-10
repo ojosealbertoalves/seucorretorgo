@@ -80,27 +80,40 @@ async function runQuery(
   }
 
   // O termo de localização pode ser um bairro OU uma cidade (ex: "Senador
-  // Canedo" é cidade, não bairro) — busca nos dois relacionamentos e nos
-  // campos de texto legados (cidadeTexto/bairroTexto) para não depender de
-  // todo empreendimento ter cidadeId/bairroId preenchidos corretamente.
+  // Canedo" é cidade, não bairro). Prioriza os relacionamentos novos
+  // (cidade/bairro cadastrados via dropdown) e usa `contains` em vez de
+  // igualdade exata — "in" exigia bater caractere a caractere (inclusive
+  // acentos), então "Goiania" sem acento não encontrava "Goiânia" e a busca
+  // caía inteira no fallback. Os campos de texto legados (cidadeTexto/
+  // bairroTexto) continuam como último recurso para empreendimentos antigos
+  // sem cidadeId/bairroId preenchido.
   if (opts.useBairro && filtros.bairrosInteresse && filtros.bairrosInteresse.length > 0) {
+    const termos = filtros.bairrosInteresse
     and.push({
       OR: [
-        { bairro: { is: { nome: { in: filtros.bairrosInteresse } } } },
-        { bairroTexto: { in: filtros.bairrosInteresse } },
-        { bairrosProximos: { hasSome: filtros.bairrosInteresse } },
-        { cidade: { is: { nome: { in: filtros.bairrosInteresse } } } },
-        { cidadeTexto: { in: filtros.bairrosInteresse } },
+        // Prioridade 1: relacionamento novo (dropdown) — cidade
+        ...termos.map((termo) => ({
+          cidade: { is: { nome: { contains: termo, mode: 'insensitive' as const } } },
+        })),
+        // Prioridade 2: relacionamento novo (dropdown) — bairro
+        ...termos.map((termo) => ({
+          bairro: { is: { nome: { contains: termo, mode: 'insensitive' as const } } },
+        })),
+        { bairrosProximos: { hasSome: termos } },
+        // Fallback: campos de texto livre antigos
+        ...termos.map((termo) => ({ cidadeTexto: { contains: termo, mode: 'insensitive' as const } })),
+        ...termos.map((termo) => ({ bairroTexto: { contains: termo, mode: 'insensitive' as const } })),
       ],
     })
   }
 
   if (opts.usePreco && filtros.precoMax) {
-    if (filtros.tipoNegocio === 'LOTE') {
-      where.lotePrecoMin = { lte: filtros.precoMax }
-    } else {
-      where.precoMin = { lte: filtros.precoMax }
-    }
+    and.push({
+      OR: [
+        { lotePrecoMin: { lte: filtros.precoMax, gt: 0 } },
+        { precoMin: { lte: filtros.precoMax, gt: 0 } },
+      ],
+    })
   }
 
   if (filtros.aceitaFgts) where.aceitaFgts = true
