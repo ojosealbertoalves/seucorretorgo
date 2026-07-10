@@ -38,12 +38,22 @@ type CardItem = {
   area: number | null
   preco: number | null
   createdAt: Date
+  dentroDoOrcamento: boolean
 }
+
+const LIMIAR_DENTRO_ORCAMENTO = 0.75
 
 export default async function CatalogoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tipo?: string; incorporadora?: string; cidade?: string; bairro?: string; status?: string }>
+  searchParams: Promise<{
+    tipo?: string
+    incorporadora?: string
+    cidade?: string
+    bairro?: string
+    status?: string
+    precoMax?: string
+  }>
 }) {
   const sp = await searchParams
   const tipo = parseParam(sp.tipo)
@@ -51,6 +61,7 @@ export default async function CatalogoPage({
   const cidade = parseParam(sp.cidade)
   const bairro = parseParam(sp.bairro)
   const status = parseParam(sp.status)
+  const precoMaxNum = sp.precoMax ? parseInt(sp.precoMax) : null
 
   const [incorporadoras, cidadesComEmpreendimentos, bairrosComEmpreendimentos] = await Promise.all([
     prisma.incorporadora.findMany({
@@ -79,6 +90,21 @@ export default async function CatalogoPage({
     ...(cidade.length > 0 ? { cidadeId: { in: cidade } } : {}),
     ...(bairro.length > 0 ? { bairroId: { in: bairro } } : {}),
     ...(status.length > 0 ? { status: { in: status as StatusObra[] } } : {}),
+    ...(precoMaxNum
+      ? {
+          OR: [
+            {
+              AND: [{ tipoNegocio: 'LOTE' }, { lotePrecoMin: { lte: precoMaxNum, gt: 0 } }],
+            },
+            {
+              AND: [{ tipoNegocio: 'IMOVEL' }, { precoMin: { lte: precoMaxNum, gt: 0 } }],
+            },
+            {
+              AND: [{ precoMin: 0 }, { OR: [{ lotePrecoMin: null }, { lotePrecoMin: 0 }] }],
+            },
+          ],
+        }
+      : {}),
   }
 
   const outrosFiltrosAtivos = incorporadora.length > 0 || cidade.length > 0 || bairro.length > 0 || status.length > 0
@@ -99,7 +125,10 @@ export default async function CatalogoPage({
       : Promise.resolve([]),
     incluirAvulsos
       ? prisma.loteAnuncio.findMany({
-          where: { ativo: true },
+          where: {
+            ativo: true,
+            ...(precoMaxNum ? { preco: { lte: precoMaxNum, gt: 0 } } : {}),
+          },
           orderBy: { createdAt: 'desc' },
           include: { fotos: { orderBy: { ordem: 'asc' }, take: 1 } },
         })
@@ -110,6 +139,7 @@ export default async function CatalogoPage({
     ...empreendimentos.map((e) => {
       const isLote = e.tipoNegocio === 'LOTE'
       const preco = isLote && e.lotePrecoMin ? e.lotePrecoMin : e.precoMin
+      const precoFinal = preco && preco > 0 ? preco : null
       return {
         id: e.id,
         href: `/catalogo/${e.slug}`,
@@ -120,8 +150,11 @@ export default async function CatalogoPage({
         bairro: e.bairro?.nome ?? e.bairroTexto ?? null,
         cidade: e.cidade?.nome ?? e.cidadeTexto ?? null,
         area: isLote && e.loteAreaMin && e.loteAreaMin > 0 ? e.loteAreaMin : null,
-        preco: preco && preco > 0 ? preco : null,
+        preco: precoFinal,
         createdAt: e.createdAt,
+        dentroDoOrcamento: !!(
+          precoMaxNum && precoFinal && precoFinal <= precoMaxNum * LIMIAR_DENTRO_ORCAMENTO
+        ),
       }
     }),
     ...avulsos.map((l) => ({
@@ -134,6 +167,9 @@ export default async function CatalogoPage({
       bairro: l.bairro,
       cidade: l.cidade,
       area: l.area > 0 ? l.area : null,
+      dentroDoOrcamento: !!(
+        precoMaxNum && l.preco > 0 && l.preco <= precoMaxNum * LIMIAR_DENTRO_ORCAMENTO
+      ),
       preco: l.preco > 0 ? l.preco : null,
       createdAt: l.createdAt,
     })),
@@ -173,6 +209,13 @@ export default async function CatalogoPage({
                   <div className="absolute top-2 left-2">
                     <Badge style={{ background: c.badgeColor, color: 'white', border: 'none' }}>{c.badge}</Badge>
                   </div>
+                  {c.dentroDoOrcamento && (
+                    <div className="absolute top-2 right-2">
+                      <Badge style={{ background: '#2E7D32', color: 'white', border: 'none' }}>
+                        Dentro do orçamento
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4 space-y-1">
                   <h2 className="font-semibold text-white truncate">{c.nome}</h2>

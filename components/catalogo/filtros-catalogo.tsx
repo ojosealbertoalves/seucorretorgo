@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { MultiSelectFiltro, type FiltroOption } from './multiselect-filtro'
+import { SelectFiltro } from './select-filtro'
 
 const TIPO_OPTIONS: FiltroOption[] = [
   { value: 'LOTE', label: 'Loteamento' },
@@ -13,6 +14,18 @@ const STATUS_OPTIONS: FiltroOption[] = [
   { value: 'LANCAMENTO', label: 'Lançamento' },
   { value: 'EM_OBRAS', label: 'Em obras' },
   { value: 'PRONTO', label: 'Pronto' },
+]
+
+export const PRECO_MAX_OPTIONS: FiltroOption[] = [
+  { value: '200000', label: 'Até R$ 200 mil' },
+  { value: '300000', label: 'Até R$ 300 mil' },
+  { value: '400000', label: 'Até R$ 400 mil' },
+  { value: '500000', label: 'Até R$ 500 mil' },
+  { value: '600000', label: 'Até R$ 600 mil' },
+  { value: '700000', label: 'Até R$ 700 mil' },
+  { value: '800000', label: 'Até R$ 800 mil' },
+  { value: '1000000', label: 'Até R$ 1 milhão' },
+  { value: '1500000', label: 'Até R$ 1,5 milhão' },
 ]
 
 export type CidadeOption = { id: string; nome: string }
@@ -41,6 +54,7 @@ export function FiltrosCatalogo({
   const cidade = parseParam(searchParams.get('cidade'))
   const bairro = parseParam(searchParams.get('bairro'))
   const status = parseParam(searchParams.get('status'))
+  const precoMax = searchParams.get('precoMax')
 
   const bairroOptions: FiltroOption[] = (
     cidade.length > 0 ? bairros.filter((b) => cidade.includes(b.cidadeId)) : bairros
@@ -56,6 +70,10 @@ export function FiltrosCatalogo({
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
 
+  function setPrecoMax(value: string | null) {
+    updateParams({ precoMax: value ? [value] : [] })
+  }
+
   function setCidade(values: string[]) {
     const bairrosValidos = values.length > 0
       ? bairro.filter((id) => bairros.find((b) => b.id === id && values.includes(b.cidadeId)))
@@ -63,7 +81,8 @@ export function FiltrosCatalogo({
     updateParams({ cidade: values, bairro: bairrosValidos })
   }
 
-  const temFiltroAtivo = tipo.length + incorporadora.length + cidade.length + bairro.length + status.length > 0
+  const temFiltroAtivo =
+    tipo.length + incorporadora.length + cidade.length + bairro.length + status.length > 0 || !!precoMax
 
   return (
     <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-1 -mx-1 px-1">
@@ -100,6 +119,12 @@ export function FiltrosCatalogo({
         options={STATUS_OPTIONS}
         selected={status}
         onChange={(values) => updateParams({ status: values })}
+      />
+      <SelectFiltro
+        label="Preço máximo"
+        options={PRECO_MAX_OPTIONS}
+        selected={precoMax}
+        onChange={setPrecoMax}
       />
 
       {temFiltroAtivo && (
