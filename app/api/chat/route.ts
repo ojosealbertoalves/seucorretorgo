@@ -382,6 +382,42 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Após o stream terminar, verifica se Alberto mencionou empreendimentos
+        const empreendimentosMencionados = catalogoFiltrado.filter((e) =>
+          fullText.toLowerCase().includes(e.nome.toLowerCase())
+        )
+
+        if (empreendimentosMencionados.length > 0) {
+          const cardsData = empreendimentosMencionados.map((e) => ({
+            id: e.id,
+            slug: e.slug,
+            nome: e.nome,
+            bairro: e.bairro?.nome || e.bairroTexto || '',
+            cidade: e.cidade?.nome || e.cidadeTexto || '',
+            status: e.status,
+            tipoNegocio: e.tipoNegocio,
+            precoMin: e.precoMin,
+            precoMax: e.precoMax,
+            lotePrecoMin: e.lotePrecoMin,
+            loteAreaMin: e.loteAreaMin,
+            loteAreaMax: e.loteAreaMax,
+            diferenciais: e.diferenciais,
+            destaqueIa: e.destaqueIa,
+            incorporadora: {
+              nome: e.incorporadora?.nome || '',
+              logo: e.incorporadora?.logo || null,
+            },
+            tipologias: e.tipologias,
+            fotos: e.fotos.map((f) => ({ url: f.url })),
+          }))
+
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'cards', data: cardsData })}\n\n`
+            )
+          )
+        }
+
         // Detecta lead na resposta completa
         const leadMatch = fullText.match(
           /LEAD:\s*({[^}]+})/
