@@ -1,18 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 
-export type FiltrosBusca = {
-  tipo?: 'apartamento' | 'casa' | null
-  tipoNegocio?: 'IMOVEL' | 'LOTE' | null
-  quartos?: number | null
-  areaTerreno?: number | null
-  bairrosInteresse?: string[] | null
-  precoMax?: number | null
-  diferenciais?: string[] | null
-  aceitaFgts?: boolean | null
-  programaMcmv?: boolean | null
-}
-
 // Ordem de exibição das fotos: FACHADA sempre primeiro
 const FOTO_ORDEM: Record<string, number> = {
   FACHADA: 0,
@@ -50,208 +38,20 @@ function mapRow(e: EmpreendimentoRow) {
 
 export type EmpreendimentoResult = ReturnType<typeof mapRow>
 
-const COMBINING_MARK_MIN = 0x0300
-const COMBINING_MARK_MAX = 0x036f
-
-function removerAcentos(str: string): string {
-  return Array.from(str.normalize('NFD'))
-    .filter((ch) => {
-      const code = ch.codePointAt(0) ?? 0
-      return code < COMBINING_MARK_MIN || code > COMBINING_MARK_MAX
-    })
-    .join('')
-    .toLowerCase()
-}
-
 /**
- * `contains` com `mode: insensitive` ignora maiúsculas/minúsculas mas não acentos —
- * "goiania" não bate em "Goiânia" no Postgres. Busca os nomes cadastrados de
- * cidade/bairro e, comparando sem acento, expande os termos com o nome oficial
- * para que a query com `contains` encontre o registro mesmo com acentuação diferente.
+ * Busca TODOS os empreendimentos ativos, sem filtro nenhum no banco. O
+ * filtro por cidade/nome é feito inteiramente em JS (app/api/chat/route.ts),
+ * comparando texto sem acento — substitui as várias camadas de fallback que
+ * existiam aqui (contains, expansão sem acento, relaxamento em cascata) por
+ * uma única fonte de verdade: esta lista completa.
  */
-async function expandirTermosSemAcento(termos: string[]): Promise<string[]> {
-  const [cidades, bairros] = await Promise.all([
-    prisma.cidade.findMany({ select: { nome: true } }),
-    prisma.bairro.findMany({ select: { nome: true } }),
-  ])
-  const nomes = [...new Set([...cidades.map((c) => c.nome), ...bairros.map((b) => b.nome)])]
-
-  const expandido = new Set(termos)
-  for (const termo of termos) {
-    const alvo = removerAcentos(termo)
-    const match = nomes.find((n) => removerAcentos(n) === alvo)
-    if (match) expandido.add(match)
-  }
-  return [...expandido]
-}
-
-async function runQuery(
-  filtros: FiltrosBusca,
-  opts: { useBairro: boolean; usePreco: boolean },
-  take = 4,
-) {
-  const where: Prisma.EmpreendimentoWhereInput = { ativo: true }
-  const and: Prisma.EmpreendimentoWhereInput[] = []
-
-  if (filtros.tipoNegocio) {
-    where.tipoNegocio = filtros.tipoNegocio
-  }
-
-  // Lotes/loteamentos usam os campos agregados do Empreendimento
-  // (loteAreaMin/loteAreaMax/lotePrecoMin) — a relação `lotes` costuma
-  // ter só um registro placeholder (área/preço zerados, indisponível) e
-  // não deve ser usada para filtrar ou o resultado vem sempre vazio.
-  if (filtros.tipoNegocio === 'LOTE') {
-    if (filtros.areaTerreno) {
-      and.push({
-        OR: [
-          { loteAreaMin: { gte: filtros.areaTerreno } },
-          { loteAreaMax: { gte: filtros.areaTerreno } },
-        ],
-      })
-    }
-  } else if (filtros.quartos) {
-    where.tipologias = { some: { quartos: filtros.quartos, disponivel: true } }
-  }
-
-  // O termo de localização pode ser um bairro OU uma cidade (ex: "Senador
-  // Canedo" é cidade, não bairro). Prioriza os relacionamentos novos
-  // (cidade/bairro cadastrados via dropdown) e usa `contains` em vez de
-  // igualdade exata — "in" exigia bater caractere a caractere (inclusive
-  // acentos), então "Goiania" sem acento não encontrava "Goiânia" e a busca
-  // caía inteira no fallback. Os campos de texto legados (cidadeTexto/
-  // bairroTexto) continuam como último recurso para empreendimentos antigos
-  // sem cidadeId/bairroId preenchido.
-  if (opts.useBairro && filtros.bairrosInteresse && filtros.bairrosInteresse.length > 0) {
-    const termos = filtros.bairrosInteresse
-    and.push({
-      OR: [
-        // Prioridade 1: relacionamento novo (dropdown) — cidade
-        ...termos.map((termo) => ({
-          cidade: { is: { nome: { contains: termo, mode: 'insensitive' as const } } },
-        })),
-        // Prioridade 2: relacionamento novo (dropdown) — bairro
-        ...termos.map((termo) => ({
-          bairro: { is: { nome: { contains: termo, mode: 'insensitive' as const } } },
-        })),
-        // NOTA: bairrosProximos ("perto de X", tag de marketing) é
-        // propositalmente EXCLUÍDO daqui — é um match aproximado, não a
-        // cidade/bairro real do empreendimento, e usá-lo aqui faz um
-        // empreendimento de outra cidade aparecer numa busca exata (ex:
-        // pedir "Goiânia" e vir algo de Senador Canedo só porque foi
-        // marcado como "próximo de Goiânia"). Fica de fora do match exato;
-        // se o termo não bater em nada exato, a busca cai no fallback
-        // (useBairro: false), que já joga fora o filtro de localização.
-        // Fallback: campos de texto livre antigos — só considerados quando
-        // o relacionamento (cidadeId/bairroId) NÃO está preenchido. Empreendimentos
-        // migrados para o dropdown podem manter cidadeTexto/bairroTexto com o
-        // valor antigo (pré-migração), e usar esse texto sem essa guarda faz
-        // um empreendimento já com cidade correta vazar para a busca de outra
-        // cidade (ex: cidadeTexto="Goiânia" desatualizado num empreendimento
-        // cuja cidade real, via relação, já é Senador Canedo).
-        ...termos.map((termo) => ({
-          cidadeId: null,
-          cidadeTexto: { contains: termo, mode: 'insensitive' as const },
-        })),
-        ...termos.map((termo) => ({
-          bairroId: null,
-          bairroTexto: { contains: termo, mode: 'insensitive' as const },
-        })),
-      ],
-    })
-  }
-
-  if (opts.usePreco && filtros.precoMax) {
-    and.push({
-      OR: [
-        { lotePrecoMin: { lte: filtros.precoMax, gt: 0 } },
-        { precoMin: { lte: filtros.precoMax, gt: 0 } },
-      ],
-    })
-  }
-
-  if (filtros.aceitaFgts) where.aceitaFgts = true
-  if (filtros.programaMcmv) where.programaMcmv = true
-
-  if (filtros.diferenciais && filtros.diferenciais.length > 0) {
-    where.diferenciais = { hasSome: filtros.diferenciais }
-  }
-
-  if (and.length > 0) where.AND = and
-
+export async function listEmpreendimentosAtivos(): Promise<EmpreendimentoResult[]> {
   const rows = await prisma.empreendimento.findMany({
-    where,
-    take,
-    orderBy: { createdAt: 'desc' },
-    include: EMPREENDIMENTO_INCLUDE,
-  })
-
-  return rows.map(mapRow)
-}
-
-export type BuscaEmpreendimentosResultado = {
-  results: EmpreendimentoResult[]
-  /** true quando o resultado só veio depois de ignorar o filtro de bairro/cidade */
-  relaxouLocalizacao: boolean
-  /** true quando o resultado só veio depois de também ignorar o filtro de preço */
-  relaxouPreco: boolean
-}
-
-export async function searchEmpreendimentosDetalhado(
-  filtros: FiltrosBusca,
-  take = 4,
-): Promise<BuscaEmpreendimentosResultado> {
-  // Busca completa com todos os filtros
-  let results = await runQuery(filtros, { useBairro: true, usePreco: true }, take)
-  if (results.length) return { results, relaxouLocalizacao: false, relaxouPreco: false }
-
-  // Antes de relaxar a localização, tenta encontrar a cidade/bairro cadastrado
-  // comparando sem acento (ex: "goiania" -> "Goiânia") — evita cair no fallback
-  // genérico só porque o termo veio sem acentuação.
-  if (filtros.bairrosInteresse?.length) {
-    const termosExpandidos = await expandirTermosSemAcento(filtros.bairrosInteresse)
-    if (termosExpandidos.length > filtros.bairrosInteresse.length) {
-      results = await runQuery(
-        { ...filtros, bairrosInteresse: termosExpandidos },
-        { useBairro: true, usePreco: true },
-        take,
-      )
-      if (results.length) return { results, relaxouLocalizacao: false, relaxouPreco: false }
-    }
-  }
-
-  // Relaxa bairro/cidade
-  results = await runQuery(filtros, { useBairro: false, usePreco: true }, take)
-  if (results.length) return { results, relaxouLocalizacao: true, relaxouPreco: false }
-
-  // Relaxa preço também
-  results = await runQuery(filtros, { useBairro: false, usePreco: false }, take)
-  return { results, relaxouLocalizacao: true, relaxouPreco: results.length > 0 }
-}
-
-export async function searchEmpreendimentos(
-  filtros: FiltrosBusca,
-  take = 4,
-): Promise<EmpreendimentoResult[]> {
-  const { results } = await searchEmpreendimentosDetalhado(filtros, take)
-  return results
-}
-
-/** Nomes + id dos empreendimentos ativos — usado para detectar menção direta pelo nome na mensagem do usuário. */
-export async function listNomesAtivos(): Promise<{ id: string; nome: string }[]> {
-  return prisma.empreendimento.findMany({
     where: { ativo: true },
-    select: { id: true, nome: true },
     orderBy: { createdAt: 'desc' },
-  })
-}
-
-export async function getEmpreendimentoPorId(id: string): Promise<EmpreendimentoResult | null> {
-  const row = await prisma.empreendimento.findFirst({
-    where: { id, ativo: true },
     include: EMPREENDIMENTO_INCLUDE,
   })
-  return row ? mapRow(row) : null
+  return rows.map(mapRow)
 }
 
 export type FiltrosLotes = {

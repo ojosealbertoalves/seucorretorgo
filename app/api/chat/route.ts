@@ -1,10 +1,6 @@
 import {
-  searchEmpreendimentos,
-  searchEmpreendimentosDetalhado,
+  listEmpreendimentosAtivos,
   searchLotes,
-  listNomesAtivos,
-  getEmpreendimentoPorId,
-  type FiltrosBusca,
   type EmpreendimentoResult,
   type LoteResult,
 } from '@/lib/search-empreendimentos'
@@ -36,130 +32,46 @@ function fmt(n: number) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
-const MAPA_CIDADES: Record<string, string> = {
-  goiania: 'Goiânia',
-  goiânia: 'Goiânia',
-  gyn: 'Goiânia',
-  'goiania go': 'Goiânia',
-  'goiânia go': 'Goiânia',
+const COMBINING_MARK_MIN = 0x0300
+const COMBINING_MARK_MAX = 0x036f
 
-  'senador canedo': 'Senador Canedo',
-  canedo: 'Senador Canedo',
-  's canedo': 'Senador Canedo',
+/** Remove acentos comparando code points (evita depender de regex \u escapada). */
+function removerAcentos(str: string): string {
+  return Array.from(str.normalize('NFD'))
+    .filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0
+      return code < COMBINING_MARK_MIN || code > COMBINING_MARK_MAX
+    })
+    .join('')
+    .toLowerCase()
+}
 
-  aparecida: 'Aparecida de Goiânia',
+// Chaves já sem acento (comparadas contra o texto da mensagem também sem
+// acento) — cidades mais específicas primeiro para "aparecida de goiania"
+// não perder para a chave curta "goiania" contida dentro dela.
+const CIDADES: Record<string, string> = {
   'aparecida de goiania': 'Aparecida de Goiânia',
-  'aparecida de goiânia': 'Aparecida de Goiânia',
-
-  trindade: 'Trindade',
+  'senador canedo': 'Senador Canedo',
+  'goiania go': 'Goiânia',
+  aparecida: 'Aparecida de Goiânia',
+  canedo: 'Senador Canedo',
   goianira: 'Goianira',
+  trindade: 'Trindade',
+  goiania: 'Goiânia',
+  gyn: 'Goiânia',
 }
 
-/** Normaliza variações comuns de digitação de cidade (com/sem acento, abreviações) para o nome oficial cadastrado. */
-function normalizarCidade(termo: string): string {
-  const termoLower = termo.toLowerCase().trim()
-  return MAPA_CIDADES[termoLower] || termo
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/**
- * Detecta cidades citadas diretamente no texto da mensagem, independente do
- * que o LLM de extração de filtros (extractFiltros) tenha retornado. Serve de
- * rede de segurança para frases como "catálogo de Goiânia" ou "o que vocês
- * têm em Senador Canedo?" — onde o pedido de "mostrar tudo" pode fazer o
- * modelo de extração ignorar a cidade mencionada e devolver bairros vazio,
- * o que faria a busca rodar sem filtro de localização e trazer TODAS as
- * cidades como se fossem o resultado pedido.
- */
-function detectarCidadesMencionadas(mensagem: string): string[] {
-  let texto = ` ${mensagem.toLowerCase()} `
-  const encontradas = new Set<string>()
-  const chaves = Object.keys(MAPA_CIDADES).sort((a, b) => b.length - a.length)
+/** Detecta a cidade citada na mensagem do usuário — busca determinística, sem depender de LLM. */
+function extrairCidade(mensagem: string): string | null {
+  const msg = removerAcentos(mensagem)
+  const chaves = Object.keys(CIDADES).sort((a, b) => b.length - a.length)
 
   for (const chave of chaves) {
-    const regex = new RegExp(`\\b${escapeRegExp(chave)}\\b`)
-    if (regex.test(texto)) {
-      encontradas.add(MAPA_CIDADES[chave])
-      // Remove o trecho já casado para uma chave mais longa (ex: "aparecida de
-      // goiânia") não deixar a chave curta "goiânia" casar de novo por cima.
-      texto = texto.replace(regex, ' ')
+    if (new RegExp(`\\b${chave}\\b`).test(msg)) {
+      return CIDADES[chave]
     }
   }
-
-  return [...encontradas]
-}
-
-type FiltrosExtraidos = FiltrosBusca & {
-  bairros?: string[] | null
-  prontoParaBuscar: boolean
-  tipoNegocio?: 'IMOVEL' | 'LOTE' | null
-  areaTerreno?: number | null
-}
-
-async function extractFiltros(
-  messages: { role: 'user' | 'assistant'; content: string }[],
-): Promise<FiltrosExtraidos> {
-  try {
-    const res = await fetch(OR_URL, {
-      method: 'POST',
-      headers: orHeaders(),
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL_FAST || 'anthropic/claude-haiku-4-5',
-        messages: [
-          {
-            role: 'system',
-            content: `Analise a conversa e extraia filtros de busca de imóveis ou lotes.
-Retorne APENAS JSON válido, sem markdown, sem explicação:
-{
-  "tipoNegocio": "IMOVEL" | "LOTE" | null,
-  "tipo": "apartamento" | "casa" | null,
-  "quartos": number | null,
-  "areaTerreno": number | null,
-  "precoMax": number | null,
-  "bairros": string[] | null,
-  "diferenciais": string[] | null,
-  "aceitaFgts": boolean | null,
-  "programaMcmv": boolean | null,
-  "prontoParaBuscar": boolean
-}
-prontoParaBuscar = true quando:
-- Para LOTE: basta ter tipoNegocio="LOTE" (lote não tem quartos — NÃO exija quartos nem precoMax)
-- Para IMOVEL: precisa ter tipo + quartos
-- Se o usuário perguntar algo como "o que tem no catálogo", "o que vocês têm",
-  "quais opções", "me mostre as opções" ou variações → prontoParaBuscar=true,
-  mesmo sem nenhum outro filtro definido
-Se nada disso se aplicar ainda, prontoParaBuscar=false e continue qualificando.`,
-          },
-          ...messages,
-        ],
-        max_tokens: 256,
-      }),
-    })
-
-    if (!res.ok) return { prontoParaBuscar: false }
-    const data = await res.json()
-    const text = (data.choices?.[0]?.message?.content ?? '{}').trim()
-    return JSON.parse(text)
-  } catch {
-    return { prontoParaBuscar: false }
-  }
-}
-
-const FRASES_BUSCA_FORCADA = [
-  'o que tem', 'o que vocês têm', 'o que voces tem', 'quais opções', 'quais opcoes',
-  'quais as opções', 'quais as opcoes', 'quais empreendimentos', 'me mostre', 'me mostra',
-  'tem algum', 'tem alguma', 'catálogo', 'catalogo',
-  'disponível', 'disponivel', 'disponíveis', 'disponiveis', 'o que você tem', 'o que voce tem',
-  'o que tem no catálogo', 'o que tem no catalogo', 'quero ver opções', 'quero ver opcoes',
-]
-
-function temFraseBuscaForcada(messages: { role: string; content: string }[]) {
-  const text = ultimaMensagemUsuario(messages).toLowerCase()
-  if (!text) return false
-  return FRASES_BUSCA_FORCADA.some((f) => text.includes(f))
+  return null
 }
 
 function ultimaMensagemUsuario(messages: { role: string; content: string }[]) {
@@ -169,12 +81,22 @@ function ultimaMensagemUsuario(messages: { role: string; content: string }[]) {
 /** Detecta se o usuário citou o nome de um empreendimento ativo pelo nome (ex: "me fala sobre o Jardins Grécia"). */
 function encontrarEmpreendimentoMencionado(
   ultimaMensagem: string,
-  nomesAtivos: { id: string; nome: string }[],
+  empreendimentos: EmpreendimentoResult[],
 ) {
   const texto = ultimaMensagem.toLowerCase()
   // nomes mais longos primeiro evita que um nome curto "contido" em outro dê match errado
-  const ordenados = [...nomesAtivos].sort((a, b) => b.nome.length - a.nome.length)
-  return ordenados.find((n) => texto.includes(n.nome.toLowerCase())) ?? null
+  const ordenados = [...empreendimentos].sort((a, b) => b.nome.length - a.nome.length)
+  return ordenados.find((e) => texto.includes(e.nome.toLowerCase())) ?? null
+}
+
+/** Filtra por cidade com igualdade exata (após normalizar acento/caixa) — "Goiânia" não deve trazer "Aparecida de Goiânia" só por conter a palavra. */
+function filtrarPorCidade(
+  empreendimentos: EmpreendimentoResult[],
+  cidade: string | null,
+): EmpreendimentoResult[] {
+  if (!cidade) return empreendimentos
+  const alvo = removerAcentos(cidade)
+  return empreendimentos.filter((e) => removerAcentos(e.cidade) === alvo)
 }
 
 const LOTE_AVULSO_KEYWORDS = ['lote avulso', 'lote para comprar', 'lote de terceiro']
@@ -201,32 +123,18 @@ function buildLotesAvulsosContextJson(lotes: LoteResult[]) {
   }))
 }
 
-function buildBuscaVaziaInstrucao(cidadesSemResultado?: string[] | null) {
-  if (cidadesSemResultado && cidadesSemResultado.length > 0) {
-    const cidades = cidadesSemResultado.join(', ')
-    return `INSTRUÇÃO ESPECIAL — Nenhum empreendimento encontrado em ${cidades}.
+function buildBuscaVaziaInstrucao(cidade: string) {
+  return `INSTRUÇÃO ESPECIAL — Nenhum empreendimento encontrado em ${cidade}.
 
 Não há nenhum empreendimento no contexto abaixo (o bloco EMPREENDIMENTOS_JSON está vazio de propósito) — NÃO invente ou mencione empreendimentos de outras cidades.
 
 Responda com transparência:
-1. Diga claramente que não há empreendimento cadastrado em ${cidades} no momento
+1. Diga claramente que não há empreendimento cadastrado em ${cidade} no momento
 2. Pergunte se o cliente quer ver opções em outras cidades da região — SEM citar quais cidades ou empreendimentos até ele confirmar
 3. Se ele confirmar interesse em outras cidades, aí sim convide a explorar o catálogo completo (${LINKS_PLATAFORMA.catalogo}) ou o mapa interativo (${LINKS_PLATAFORMA.mapa})
 
 Exemplo de resposta ideal:
-'No momento não temos nenhum empreendimento em ${cidades}. Quer que eu te mostre o que temos em outras regiões próximas?'`
-  }
-
-  return `INSTRUÇÃO ESPECIAL — Nenhum empreendimento encontrado com os filtros informados.
-
-Quando isso acontecer, responda naturalmente e sugira:
-1. Que a região pode ter opções próximas (ex: próximo ao Flamboyant → Senador Canedo fica a poucos minutos do Flamboyant)
-2. Convide a explorar o catálogo completo: 'Você pode ver todas as opções disponíveis em nosso catálogo: ${LINKS_PLATAFORMA.catalogo}'
-3. Sugira o mapa interativo: 'Ou explore pelo mapa e veja a localização de cada empreendimento: ${LINKS_PLATAFORMA.mapa}'
-4. Pergunte se quer flexibilizar a busca
-
-Exemplo de resposta ideal:
-'No momento não temos empreendimentos exatamente próximos ao Flamboyant, mas o Senador Canedo fica a apenas 15 minutos do shopping e temos ótimas opções por lá! Você pode explorar nosso catálogo completo em ${LINKS_PLATAFORMA.catalogo} ou ver no mapa interativo ${LINKS_PLATAFORMA.mapa}. Quer que eu te mostre o que temos em Senador Canedo?'`
+'No momento não temos nenhum empreendimento em ${cidade}. Quer que eu te mostre o que temos em outras regiões próximas?'`
 }
 
 function buildContextJson(empreendimentos: EmpreendimentoResult[]) {
@@ -300,51 +208,31 @@ PERSONALIDADE:
 - Nunca pressione o cliente
 - Linguagem simples, sem jargão técnico
 
-REGRAS DE FLUXO:
-Quando o usuário pedir o catálogo ou opções disponíveis:
-- MOSTRE IMEDIATAMENTE os empreendimentos do contexto abaixo
-- NÃO faça perguntas antes de mostrar
-- Após mostrar, ENTÃO pergunte se tem alguma preferência
-
-Frases que significam "mostre o catálogo": "qual o catálogo", "quais as opções", "o que tem", "me mostre", "quais empreendimentos", "tem algum", "quais opções em [cidade]", "o que vocês têm em [cidade]".
-
-Nesse caso, responda direto:
-"Aqui estão nossas opções disponíveis em [cidade]:
-[mostra os cards]
-Algum chamou sua atenção? Posso detalhar qualquer um deles!"
-
-NÃO responda com outra pergunta quando:
-- O usuário já informou a cidade
-- O usuário já informou o tipo (lote/loteamento)
-- O usuário pediu explicitamente para ver as opções
-
-ROTEIRO DE QUALIFICAÇÃO (siga naturalmente):
-1. O cliente busca lote, loteamento ou imóvel?
-2. Área desejada (m²) — para lotes
-3. Orçamento máximo
-4. Bairro ou região de preferência em Goiânia
-5. Diferenciais importantes (segurança, lazer, portaria, pavimentação etc.)
-6. Forma de pagamento (à vista, financiamento, FGTS)
-
 APRESENTAÇÃO DOS EMPREENDIMENTOS:
-Os empreendimentos compatíveis estão no contexto abaixo, como JSON.
-Ao apresentar:
+Os empreendimentos compatíveis com a mensagem do cliente já vêm anexados como cards visuais nesta resposta, e estão listados como JSON no contexto abaixo (EMPREENDIMENTOS_JSON). Sempre que houver empreendimentos no contexto:
+- Apresente-os IMEDIATAMENTE nesta resposta — os cards já foram enviados, então fale sobre eles sem fazer perguntas antes
 - Mencione o nome, a incorporadora/loteadora e o bairro
 - Destaque os diferenciais cadastrados
 - Informe a área mínima dos lotes e o preço "a partir de"
 - Use o campo destaqueIa como frase de impacto
 - Compare positivamente quando houver mais de um
+- Depois de apresentar, ENTÃO pergunte se tem alguma preferência para ajudar a refinar (veja PERGUNTAS PARA REFINAR)
 - NUNCA invente informações não cadastradas
 - Se o contexto tiver empreendimentos, SEMPRE apresente-os
+
+PERGUNTAS PARA REFINAR (uma de cada vez, DEPOIS de apresentar o que já está disponível):
+1. Área desejada (m²) — para lotes
+2. Orçamento máximo
+3. Bairro ou região de preferência
+4. Diferenciais importantes (segurança, lazer, portaria, pavimentação etc.)
+5. Forma de pagamento (à vista, financiamento, FGTS)
 
 SOBRE AS FOTOS:
 Quando apresentar empreendimentos, o sistema automaticamente mostrará as fotos cadastradas. Você não precisa mencionar as fotos no texto — apenas descreva com entusiasmo.
 
 REGRA DE HONESTIDADE ABSOLUTA:
 - Use APENAS dados dos empreendimentos do contexto abaixo
-- Se não houver empreendimento com o perfil exato: diga claramente
-  "No momento não temos um empreendimento com exatamente esse perfil, mas posso te mostrar o que temos disponível"
-  e em seguida apresente o que existir no contexto
+- Se o contexto vier vazio por causa de uma cidade sem empreendimento cadastrado, siga a INSTRUÇÃO ESPECIAL quando ela aparecer no final deste prompt
 - NUNCA diga que não tem nada no catálogo se o contexto tiver empreendimentos
 - NUNCA invente preços, áreas, localizações ou características
 
@@ -405,7 +293,7 @@ Nunca invente dados — use apenas o que estiver em LOTES_AVULSOS_JSON.
 EMPREENDIMENTOS DISPONÍVEIS:
 {EMPREENDIMENTOS_JSON}
 
-Se o bloco acima estiver vazio ou "[]", é porque realmente não há nenhum empreendimento ativo cadastrado no momento — diga isso com transparência e ofereça para avisar quando houver novidades. NUNCA diga isso se houver empreendimentos listados.
+Se o bloco acima estiver vazio ou "[]", é porque realmente não há nenhum empreendimento compatível no momento — diga isso com transparência e ofereça para avisar quando houver novidades ou ver outras regiões. NUNCA diga isso se houver empreendimentos listados.
 
 LOTES_AVULSOS_JSON:
 {LOTES_AVULSOS_JSON}`
@@ -465,45 +353,25 @@ export async function POST(req: Request) {
 
     console.log('[chat] mensagens para API:', apiMessages.length)
 
-    const filtros = await extractFiltros(apiMessages)
+    // Busca TUDO uma única vez — o filtro por cidade/nome acontece em JS logo
+    // abaixo, sobre esta mesma lista. Cards e contexto de texto sempre usam o
+    // mesmo array filtrado: nunca há uma busca separada "para os cards".
+    const todosEmpreendimentos = await listEmpreendimentosAtivos()
 
-    if (filtros.bairros?.length) {
-      filtros.bairros = filtros.bairros.map(normalizarCidade)
-    }
-
-    // Backstop determinístico: garante a cidade mesmo se o LLM de extração
-    // não a tiver capturado (ex: falha na chamada, ou frase de "mostrar
-    // catálogo" fazendo o modelo devolver bairros vazio).
-    const cidadesMencionadas = detectarCidadesMencionadas(ultimaMensagemUsuario(apiMessages))
-    if (cidadesMencionadas.length > 0) {
-      const jaTinha = new Set(filtros.bairros ?? [])
-      const novas = cidadesMencionadas.filter((c) => !jaTinha.has(c))
-      if (novas.length > 0) {
-        filtros.bairros = [...(filtros.bairros ?? []), ...novas]
-        console.log('[chat] cidade detectada diretamente na mensagem:', novas)
-      }
-    }
-
-    if (!filtros.prontoParaBuscar && temFraseBuscaForcada(apiMessages)) {
-      filtros.prontoParaBuscar = true
-      console.log('[chat] prontoParaBuscar forçado por frase de busca na última mensagem')
-    }
-
-    if (!filtros.prontoParaBuscar && filtros.tipoNegocio === 'LOTE' && filtros.bairros?.length) {
-      filtros.prontoParaBuscar = true
-      console.log('[chat] prontoParaBuscar forçado: cidade informada + tipo lote')
-    }
-
-    console.log('[alberto] filtros extraídos:', JSON.stringify(filtros))
-
-    const nomesAtivos = await listNomesAtivos()
+    const ultimaMsgUsuario = ultimaMensagemUsuario(apiMessages)
+    const cidadeMencionada = extrairCidade(ultimaMsgUsuario)
     const empreendimentoMencionado = encontrarEmpreendimentoMencionado(
-      ultimaMensagemUsuario(apiMessages),
-      nomesAtivos,
+      ultimaMsgUsuario,
+      todosEmpreendimentos,
     )
-    if (empreendimentoMencionado) {
-      console.log('[alberto] empreendimento mencionado pelo nome na mensagem:', empreendimentoMencionado.nome)
-    }
+
+    const empreendimentosFiltrados = empreendimentoMencionado
+      ? [empreendimentoMencionado]
+      : filtrarPorCidade(todosEmpreendimentos, cidadeMencionada)
+
+    console.log('[alberto] cidade mencionada:', cidadeMencionada)
+    console.log('[alberto] empreendimento mencionado pelo nome:', empreendimentoMencionado?.nome ?? null)
+    console.log('[alberto] empreendimentos filtrados:', empreendimentosFiltrados.map((e) => ({ nome: e.nome, cidade: e.cidade })))
 
     const encoder = new TextEncoder()
 
@@ -511,94 +379,19 @@ export async function POST(req: Request) {
       async start(controller) {
         try {
           let empreendimentosJson = '[]'
-          let buscaVazia = false
-          let cidadesSemResultado: string[] | null = null
 
-          if (filtros.prontoParaBuscar || empreendimentoMencionado) {
-            let results: EmpreendimentoResult[] = []
-            let aviso: string | null = null
-
-            // Menção direta pelo nome tem prioridade — busca só aquele
-            // empreendimento com todos os dados, sem depender dos filtros extraídos.
-            if (empreendimentoMencionado) {
-              const specific = await getEmpreendimentoPorId(empreendimentoMencionado.id)
-              if (specific) results = [specific]
-            }
-
-            if (results.length === 0 && filtros.prontoParaBuscar) {
-              const filtrosBusca: FiltrosBusca = {
-                tipoNegocio: filtros.tipoNegocio,
-                tipo: filtros.tipo,
-                quartos: filtros.quartos,
-                areaTerreno: filtros.areaTerreno,
-                bairrosInteresse: filtros.bairros,
-                precoMax: filtros.precoMax,
-                diferenciais: filtros.diferenciais,
-                aceitaFgts: filtros.aceitaFgts,
-                programaMcmv: filtros.programaMcmv,
-              }
-              console.log('[alberto] buscando empreendimentos com filtros:', JSON.stringify(filtrosBusca))
-              console.log('[busca] termo cidade:', filtrosBusca.bairrosInteresse)
-
-              const busca = await searchEmpreendimentosDetalhado(filtrosBusca)
-              const pediuCidade = !!filtrosBusca.bairrosInteresse?.length
-
-              if (pediuCidade && busca.relaxouLocalizacao) {
-                // A busca só encontrou algo depois de ignorar a cidade pedida —
-                // ou seja, não há nenhum empreendimento nessa cidade. Nunca
-                // mostra cards/contexto de outra cidade como se fossem o
-                // resultado da busca; o Alberto explica isso em texto e
-                // oferece ver outras cidades antes de listar qualquer uma.
-                console.log('[alberto] sem empreendimento na cidade pedida:', filtrosBusca.bairrosInteresse)
-                buscaVazia = true
-                cidadesSemResultado = filtrosBusca.bairrosInteresse ?? null
-                results = []
-              } else {
-                results = busca.results
-
-                console.log('[busca] resultados:', results.map((e) => ({
-                  nome: e.nome,
-                  cidade: e.cidade,
-                  cidadeTexto: e.cidadeTexto,
-                })))
-
-                // Nunca deixe o contexto vazio se houver QUALQUER empreendimento
-                // ativo no catálogo — sem isso o modelo tende a alucinar "não
-                // temos nada" mesmo quando o problema foi só o filtro ser específico demais.
-                // Só se aplica quando NENHUMA cidade foi pedida — não mistura
-                // empreendimentos de fora com uma busca por cidade.
-                if (results.length === 0) {
-                  buscaVazia = true
-                  results = await searchEmpreendimentos({}, 3)
-                  if (results.length > 0) {
-                    aviso = 'Nenhum empreendimento correspondeu aos filtros informados. Empreendimentos disponíveis no catálogo geral:'
-                  }
-                }
-              }
-            }
-
-            console.log('[alberto] empreendimentos encontrados:', results.length)
-            console.log('[alberto] nomes:', results.map((e) => e.nome))
-            console.log('[alberto] contexto injetado:', results.length > 0 ? 'SIM' : 'VAZIO')
-
-            if (results.length > 0) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ type: 'cards', data: results })}\n\n`,
-                ),
-              )
-              const json = JSON.stringify(buildContextJson(results))
-              empreendimentosJson = aviso ? `${aviso}\n${json}` : json
-            }
+          if (empreendimentosFiltrados.length > 0) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'cards', data: empreendimentosFiltrados })}\n\n`,
+              ),
+            )
+            empreendimentosJson = JSON.stringify(buildContextJson(empreendimentosFiltrados))
           }
 
           let lotesAvulsosJson = '[]'
           if (mencionaLoteAvulso(apiMessages)) {
-            const lotes = await searchLotes({
-              bairro: filtros.bairros?.[0] ?? null,
-              areaMin: filtros.areaTerreno,
-              precoMax: filtros.precoMax,
-            })
+            const lotes = await searchLotes({ bairro: cidadeMencionada })
             if (lotes.length > 0) {
               lotesAvulsosJson = JSON.stringify(buildLotesAvulsosContextJson(lotes))
               console.log('[chat] lotes avulsos encontrados:', lotes.length)
@@ -609,8 +402,8 @@ export async function POST(req: Request) {
             .replace('{EMPREENDIMENTOS_JSON}', empreendimentosJson)
             .replace('{LOTES_AVULSOS_JSON}', lotesAvulsosJson)
 
-          if (buscaVazia) {
-            systemPrompt += `\n\n${buildBuscaVaziaInstrucao(cidadesSemResultado)}`
+          if (empreendimentosFiltrados.length === 0 && cidadeMencionada) {
+            systemPrompt += `\n\n${buildBuscaVaziaInstrucao(cidadeMencionada)}`
           }
 
           console.log('[chat] iniciando stream OpenRouter')
