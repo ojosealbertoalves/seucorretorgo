@@ -36,6 +36,31 @@ function fmt(n: number) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
+const MAPA_CIDADES: Record<string, string> = {
+  goiania: 'Goiânia',
+  goiânia: 'Goiânia',
+  gyn: 'Goiânia',
+  'goiania go': 'Goiânia',
+  'goiânia go': 'Goiânia',
+
+  'senador canedo': 'Senador Canedo',
+  canedo: 'Senador Canedo',
+  's canedo': 'Senador Canedo',
+
+  aparecida: 'Aparecida de Goiânia',
+  'aparecida de goiania': 'Aparecida de Goiânia',
+  'aparecida de goiânia': 'Aparecida de Goiânia',
+
+  trindade: 'Trindade',
+  goianira: 'Goianira',
+}
+
+/** Normaliza variações comuns de digitação de cidade (com/sem acento, abreviações) para o nome oficial cadastrado. */
+function normalizarCidade(termo: string): string {
+  const termoLower = termo.toLowerCase().trim()
+  return MAPA_CIDADES[termoLower] || termo
+}
+
 type FiltrosExtraidos = FiltrosBusca & {
   bairros?: string[] | null
   prontoParaBuscar: boolean
@@ -94,7 +119,8 @@ Se nada disso se aplicar ainda, prontoParaBuscar=false e continue qualificando.`
 
 const FRASES_BUSCA_FORCADA = [
   'o que tem', 'o que vocês têm', 'o que voces tem', 'quais opções', 'quais opcoes',
-  'me mostre', 'tem algum', 'tem alguma', 'catálogo', 'catalogo',
+  'quais as opções', 'quais as opcoes', 'quais empreendimentos', 'me mostre', 'me mostra',
+  'tem algum', 'tem alguma', 'catálogo', 'catalogo',
   'disponível', 'disponivel', 'disponíveis', 'disponiveis', 'o que você tem', 'o que voce tem',
   'o que tem no catálogo', 'o que tem no catalogo', 'quero ver opções', 'quero ver opcoes',
 ]
@@ -227,6 +253,24 @@ PERSONALIDADE:
 - Respostas curtas e objetivas (máximo 2 parágrafos)
 - Nunca pressione o cliente
 - Linguagem simples, sem jargão técnico
+
+REGRAS DE FLUXO:
+Quando o usuário pedir o catálogo ou opções disponíveis:
+- MOSTRE IMEDIATAMENTE os empreendimentos do contexto abaixo
+- NÃO faça perguntas antes de mostrar
+- Após mostrar, ENTÃO pergunte se tem alguma preferência
+
+Frases que significam "mostre o catálogo": "qual o catálogo", "quais as opções", "o que tem", "me mostre", "quais empreendimentos", "tem algum", "quais opções em [cidade]", "o que vocês têm em [cidade]".
+
+Nesse caso, responda direto:
+"Aqui estão nossas opções disponíveis em [cidade]:
+[mostra os cards]
+Algum chamou sua atenção? Posso detalhar qualquer um deles!"
+
+NÃO responda com outra pergunta quando:
+- O usuário já informou a cidade
+- O usuário já informou o tipo (lote/loteamento)
+- O usuário pediu explicitamente para ver as opções
 
 ROTEIRO DE QUALIFICAÇÃO (siga naturalmente):
 1. O cliente busca lote, loteamento ou imóvel?
@@ -377,9 +421,18 @@ export async function POST(req: Request) {
 
     const filtros = await extractFiltros(apiMessages)
 
+    if (filtros.bairros?.length) {
+      filtros.bairros = filtros.bairros.map(normalizarCidade)
+    }
+
     if (!filtros.prontoParaBuscar && temFraseBuscaForcada(apiMessages)) {
       filtros.prontoParaBuscar = true
       console.log('[chat] prontoParaBuscar forçado por frase de busca na última mensagem')
+    }
+
+    if (!filtros.prontoParaBuscar && filtros.tipoNegocio === 'LOTE' && filtros.bairros?.length) {
+      filtros.prontoParaBuscar = true
+      console.log('[chat] prontoParaBuscar forçado: cidade informada + tipo lote')
     }
 
     console.log('[alberto] filtros extraídos:', JSON.stringify(filtros))

@@ -50,6 +50,41 @@ function mapRow(e: EmpreendimentoRow) {
 
 export type EmpreendimentoResult = ReturnType<typeof mapRow>
 
+const COMBINING_MARK_MIN = 0x0300
+const COMBINING_MARK_MAX = 0x036f
+
+function removerAcentos(str: string): string {
+  return Array.from(str.normalize('NFD'))
+    .filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0
+      return code < COMBINING_MARK_MIN || code > COMBINING_MARK_MAX
+    })
+    .join('')
+    .toLowerCase()
+}
+
+/**
+ * `contains` com `mode: insensitive` ignora maiúsculas/minúsculas mas não acentos —
+ * "goiania" não bate em "Goiânia" no Postgres. Busca os nomes cadastrados de
+ * cidade/bairro e, comparando sem acento, expande os termos com o nome oficial
+ * para que a query com `contains` encontre o registro mesmo com acentuação diferente.
+ */
+async function expandirTermosSemAcento(termos: string[]): Promise<string[]> {
+  const [cidades, bairros] = await Promise.all([
+    prisma.cidade.findMany({ select: { nome: true } }),
+    prisma.bairro.findMany({ select: { nome: true } }),
+  ])
+  const nomes = [...new Set([...cidades.map((c) => c.nome), ...bairros.map((b) => b.nome)])]
+
+  const expandido = new Set(termos)
+  for (const termo of termos) {
+    const alvo = removerAcentos(termo)
+    const match = nomes.find((n) => removerAcentos(n) === alvo)
+    if (match) expandido.add(match)
+  }
+  return [...expandido]
+}
+
 async function runQuery(
   filtros: FiltrosBusca,
   opts: { useBairro: boolean; usePreco: boolean },
@@ -150,6 +185,21 @@ export async function searchEmpreendimentosDetalhado(
   // Busca completa com todos os filtros
   let results = await runQuery(filtros, { useBairro: true, usePreco: true }, take)
   if (results.length) return { results, relaxouLocalizacao: false, relaxouPreco: false }
+
+  // Antes de relaxar a localização, tenta encontrar a cidade/bairro cadastrado
+  // comparando sem acento (ex: "goiania" -> "Goiânia") — evita cair no fallback
+  // genérico só porque o termo veio sem acentuação.
+  if (filtros.bairrosInteresse?.length) {
+    const termosExpandidos = await expandirTermosSemAcento(filtros.bairrosInteresse)
+    if (termosExpandidos.length > filtros.bairrosInteresse.length) {
+      results = await runQuery(
+        { ...filtros, bairrosInteresse: termosExpandidos },
+        { useBairro: true, usePreco: true },
+        take,
+      )
+      if (results.length) return { results, relaxouLocalizacao: false, relaxouPreco: false }
+    }
+  }
 
   // Relaxa bairro/cidade
   results = await runQuery(filtros, { useBairro: false, usePreco: true }, take)
