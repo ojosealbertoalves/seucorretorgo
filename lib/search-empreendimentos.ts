@@ -134,10 +134,29 @@ async function runQuery(
         ...termos.map((termo) => ({
           bairro: { is: { nome: { contains: termo, mode: 'insensitive' as const } } },
         })),
-        { bairrosProximos: { hasSome: termos } },
-        // Fallback: campos de texto livre antigos
-        ...termos.map((termo) => ({ cidadeTexto: { contains: termo, mode: 'insensitive' as const } })),
-        ...termos.map((termo) => ({ bairroTexto: { contains: termo, mode: 'insensitive' as const } })),
+        // NOTA: bairrosProximos ("perto de X", tag de marketing) é
+        // propositalmente EXCLUÍDO daqui — é um match aproximado, não a
+        // cidade/bairro real do empreendimento, e usá-lo aqui faz um
+        // empreendimento de outra cidade aparecer numa busca exata (ex:
+        // pedir "Goiânia" e vir algo de Senador Canedo só porque foi
+        // marcado como "próximo de Goiânia"). Fica de fora do match exato;
+        // se o termo não bater em nada exato, a busca cai no fallback
+        // (useBairro: false), que já joga fora o filtro de localização.
+        // Fallback: campos de texto livre antigos — só considerados quando
+        // o relacionamento (cidadeId/bairroId) NÃO está preenchido. Empreendimentos
+        // migrados para o dropdown podem manter cidadeTexto/bairroTexto com o
+        // valor antigo (pré-migração), e usar esse texto sem essa guarda faz
+        // um empreendimento já com cidade correta vazar para a busca de outra
+        // cidade (ex: cidadeTexto="Goiânia" desatualizado num empreendimento
+        // cuja cidade real, via relação, já é Senador Canedo).
+        ...termos.map((termo) => ({
+          cidadeId: null,
+          cidadeTexto: { contains: termo, mode: 'insensitive' as const },
+        })),
+        ...termos.map((termo) => ({
+          bairroId: null,
+          bairroTexto: { contains: termo, mode: 'insensitive' as const },
+        })),
       ],
     })
   }

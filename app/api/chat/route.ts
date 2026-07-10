@@ -170,7 +170,22 @@ function buildLotesAvulsosContextJson(lotes: LoteResult[]) {
   }))
 }
 
-function buildBuscaVaziaInstrucao() {
+function buildBuscaVaziaInstrucao(cidadesSemResultado?: string[] | null) {
+  if (cidadesSemResultado && cidadesSemResultado.length > 0) {
+    const cidades = cidadesSemResultado.join(', ')
+    return `INSTRUÇÃO ESPECIAL — Nenhum empreendimento encontrado em ${cidades}.
+
+Não há nenhum empreendimento no contexto abaixo (o bloco EMPREENDIMENTOS_JSON está vazio de propósito) — NÃO invente ou mencione empreendimentos de outras cidades.
+
+Responda com transparência:
+1. Diga claramente que não há empreendimento cadastrado em ${cidades} no momento
+2. Pergunte se o cliente quer ver opções em outras cidades da região — SEM citar quais cidades ou empreendimentos até ele confirmar
+3. Se ele confirmar interesse em outras cidades, aí sim convide a explorar o catálogo completo (${LINKS_PLATAFORMA.catalogo}) ou o mapa interativo (${LINKS_PLATAFORMA.mapa})
+
+Exemplo de resposta ideal:
+'No momento não temos nenhum empreendimento em ${cidades}. Quer que eu te mostre o que temos em outras regiões próximas?'`
+  }
+
   return `INSTRUÇÃO ESPECIAL — Nenhum empreendimento encontrado com os filtros informados.
 
 Quando isso acontecer, responda naturalmente e sugira:
@@ -453,6 +468,7 @@ export async function POST(req: Request) {
         try {
           let empreendimentosJson = '[]'
           let buscaVazia = false
+          let cidadesSemResultado: string[] | null = null
 
           if (filtros.prontoParaBuscar || empreendimentoMencionado) {
             let results: EmpreendimentoResult[] = []
@@ -481,25 +497,39 @@ export async function POST(req: Request) {
               console.log('[busca] termo cidade:', filtrosBusca.bairrosInteresse)
 
               const busca = await searchEmpreendimentosDetalhado(filtrosBusca)
-              results = busca.results
+              const pediuCidade = !!filtrosBusca.bairrosInteresse?.length
 
-              console.log('[busca] resultados:', results.map((e) => ({
-                nome: e.nome,
-                cidade: e.cidade,
-                cidadeTexto: e.cidadeTexto,
-              })))
-
-              // Nunca deixe o contexto vazio se houver QUALQUER empreendimento
-              // ativo no catálogo — sem isso o modelo tende a alucinar "não
-              // temos nada" mesmo quando o problema foi só o filtro ser específico demais.
-              if (results.length === 0) {
+              if (pediuCidade && busca.relaxouLocalizacao) {
+                // A busca só encontrou algo depois de ignorar a cidade pedida —
+                // ou seja, não há nenhum empreendimento nessa cidade. Nunca
+                // mostra cards/contexto de outra cidade como se fossem o
+                // resultado da busca; o Alberto explica isso em texto e
+                // oferece ver outras cidades antes de listar qualquer uma.
+                console.log('[alberto] sem empreendimento na cidade pedida:', filtrosBusca.bairrosInteresse)
                 buscaVazia = true
-                results = await searchEmpreendimentos({}, 3)
-                if (results.length > 0) {
-                  aviso = 'Nenhum empreendimento correspondeu aos filtros informados. Empreendimentos disponíveis no catálogo geral:'
+                cidadesSemResultado = filtrosBusca.bairrosInteresse ?? null
+                results = []
+              } else {
+                results = busca.results
+
+                console.log('[busca] resultados:', results.map((e) => ({
+                  nome: e.nome,
+                  cidade: e.cidade,
+                  cidadeTexto: e.cidadeTexto,
+                })))
+
+                // Nunca deixe o contexto vazio se houver QUALQUER empreendimento
+                // ativo no catálogo — sem isso o modelo tende a alucinar "não
+                // temos nada" mesmo quando o problema foi só o filtro ser específico demais.
+                // Só se aplica quando NENHUMA cidade foi pedida — não mistura
+                // empreendimentos de fora com uma busca por cidade.
+                if (results.length === 0) {
+                  buscaVazia = true
+                  results = await searchEmpreendimentos({}, 3)
+                  if (results.length > 0) {
+                    aviso = 'Nenhum empreendimento correspondeu aos filtros informados. Empreendimentos disponíveis no catálogo geral:'
+                  }
                 }
-              } else if (busca.relaxouLocalizacao && filtrosBusca.bairrosInteresse?.length) {
-                aviso = `Não encontrei empreendimentos exatamente em ${filtrosBusca.bairrosInteresse.join(', ')}, mas temos estas opções disponíveis:`
               }
             }
 
@@ -536,7 +566,7 @@ export async function POST(req: Request) {
             .replace('{LOTES_AVULSOS_JSON}', lotesAvulsosJson)
 
           if (buscaVazia) {
-            systemPrompt += `\n\n${buildBuscaVaziaInstrucao()}`
+            systemPrompt += `\n\n${buildBuscaVaziaInstrucao(cidadesSemResultado)}`
           }
 
           console.log('[chat] iniciando stream OpenRouter')
