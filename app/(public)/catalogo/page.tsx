@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import NavbarPublica from '@/components/navbar-publica'
 import { FiltrosCatalogo } from '@/components/catalogo/filtros-catalogo'
 import { MapPin, Shield } from 'lucide-react'
+import { YoutubeIcon } from '@/components/icons/youtube-icon'
 
 const STATUS_LABEL: Record<string, string> = {
   LANCAMENTO: 'Lançamento',
@@ -275,9 +276,21 @@ export default async function CatalogoPage({
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5 text-white/25 text-xs">
-            <Shield size={11} />
-            Dados protegidos · LGPD
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 text-white/25 text-xs">
+              <Shield size={11} />
+              Dados protegidos · LGPD
+            </div>
+            <a
+              href="https://www.youtube.com/@soterrenosgo"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Canal YouTube Só Terrenos GO"
+              style={{ color: 'rgba(247,242,234,0.5)' }}
+              className="hover:text-[#E07B3A] transition-colors duration-200"
+            >
+              <YoutubeIcon size={20} />
+            </a>
           </div>
         </div>
       </footer>
